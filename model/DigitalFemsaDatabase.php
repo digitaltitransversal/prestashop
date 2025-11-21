@@ -81,7 +81,7 @@ class DigitalFemsaDatabase
             . 'status, currency, mode, date_add, reference, barcode, captured)'
             . 'VALUES (\'payment\', ' . pSQL((int) $cartId) . ', ' . pSQL((int) $currentOrder) . ', \''
             . pSQL($order->id) . '\', \'' . pSQL($charge_response->id) . '\',\''
-            . (float) ($order->amount * 0.01) . '\', \''
+            . (float) ($charge_response->amount * 0.01) . '\', \''
             . ($charge_response->status == 'paid' ? 'paid' : 'unpaid') . '\', \''
             . pSQL($charge_response->currency) . '\', \''
             . ($charge_response->livemode == 'true' ? 'live' : 'test') . '\', NOW(),\''

@@ -7,4 +7,5 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'DigitalFemsa\\Payments\\' => array($baseDir . '/src'),
+    'DigitalFemsa\\' => array($baseDir . '/lib/femsa-php/lib'),
 );

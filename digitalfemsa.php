@@ -4,7 +4,7 @@
  * Title   : DigitalFemsa Cash Payment Gateway for Prestashop
  * Author  : DigitalFemsa.io
  * URL     : https://digital-femsa.readme.io/docs/prestashop-1.
- * PHP Version 7.0.0
+ * PHP Version 8.1.0
  * DigitalFemsa File Doc Comment
  *
  * @author    DigitalFemsa <monitoreo.b2b@digitalfemsa.com>
@@ -22,8 +22,6 @@ require __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/model/DigitalFemsaConfig.php';
 
 require_once __DIR__ . '/model/DigitalFemsaDatabase.php';
-
-require_once __DIR__ . '/lib/femsa-php/lib/DigitalFemsa.php';
 
 require_once __DIR__ . '/src/UseCases/CreateWebhook.php';
 
@@ -163,7 +161,7 @@ class DigitalFemsa extends PaymentModule
     {
         $this->name = 'digitalfemsa';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.0';
+        $this->version = '2.0.0';
         $this->ps_versions_compliancy = [
             'min' => '1.7',
             'max' => _PS_VERSION_,
@@ -345,17 +343,28 @@ class DigitalFemsa extends PaymentModule
     {
         if ($params['order'] && Validate::isLoadedObject($params['order'])) {
             $id_order = (int) $params['order']->id;
-            $digital_femsa_tran_details = DigitalFemsaDatabase::getOrderById($id_order);
+            $digital_femsa_tran_details = DigitalFemsaDatabase::getDigitalFemsaTransaction($id_order);
+
+            $amount = isset($digital_femsa_tran_details['amount']) ? (float) $digital_femsa_tran_details['amount'] : 0.0;
+            $currencyCode = isset($digital_femsa_tran_details['currency']) ? $digital_femsa_tran_details['currency'] : '';
+
+            if ($amount <= 0) {
+                $amount = (float) $params['order']->total_paid;
+            }
+            if (empty($currencyCode)) {
+                $orderCurrency = new Currency((int) $params['order']->id_currency);
+                $currencyCode = $orderCurrency && isset($orderCurrency->iso_code) ? $orderCurrency->iso_code : $this->context->currency->iso_code;
+            }
 
             $this->smarty->assign('cash', true);
             $this->smarty->assign(
                 'digital_femsa_order',
                 [
-                    'barcode' => $digital_femsa_tran_details['reference'],
+                    'barcode' => isset($digital_femsa_tran_details['reference']) ? $digital_femsa_tran_details['reference'] : '',
                     'type' => 'cash',
-                    'barcode_url' => $digital_femsa_tran_details['barcode'],
-                    'amount' => $digital_femsa_tran_details['amount'],
-                    'currency' => $digital_femsa_tran_details['currency'],
+                    'barcode_url' => isset($digital_femsa_tran_details['barcode']) ? $digital_femsa_tran_details['barcode'] : '',
+                    'amount' => $amount,
+                    'currency' => $currencyCode,
                 ]
             );
         }
@@ -380,22 +389,31 @@ class DigitalFemsa extends PaymentModule
 
             $iso_code = $this->context->language->iso_code;
 
-            \DigitalFemsa\DigitalFemsa::setApiKey($key);
-            \DigitalFemsa\DigitalFemsa::setPlugin('Prestashop1.7');
-            \DigitalFemsa\DigitalFemsa::setApiVersion('2.0.0');
-            \DigitalFemsa\DigitalFemsa::setPluginVersion($this->version);
-            \DigitalFemsa\DigitalFemsa::setLocale($iso_code);
+            \DigitalFemsa\Configuration::getDefaultConfiguration()->setAccessToken($key);
 
             $id_order = (int) $params['id_order'];
             $digital_femsa_tran_details = DigitalFemsaDatabase::getOrderById($id_order);
 
-            // only credit card refund
+            // only credit card refund (no barcode/no reference)
             if (!$digital_femsa_tran_details['barcode']
                 && !(isset($digital_femsa_tran_details['reference'])
                     && !empty($digital_femsa_tran_details['reference']))
             ) {
-                $order = \DigitalFemsa\Order::find($digital_femsa_tran_details['id_digital_femsa_order']);
-                $order->refund(['reason' => 'requested_by_client']);
+                try {
+                    $ordersApi = new \DigitalFemsa\Api\OrdersApi(null, \DigitalFemsa\Configuration::getDefaultConfiguration());
+                    // Fetch order to compute amount for full refund
+                    $order = $ordersApi->getOrderById($digital_femsa_tran_details['id_digital_femsa_order'], $iso_code ?: 'es');
+                    $amount = (int) $order->getAmount();
+                    $refundReq = new \DigitalFemsa\Model\OrderRefundRequest([
+                        'amount' => $amount,
+                        'reason' => 'requested_by_client'
+                    ]);
+                    $ordersApi->orderRefund($order->getId(), $refundReq, $iso_code ?: 'es');
+                } catch (\Throwable $e) {
+                    if (class_exists('Logger')) {
+                        Logger::addLog('Refund error: ' . $e->getMessage(), 2, null, 'Order', $id_order, true);
+                    }
+                }
             }
         }
     }
@@ -471,10 +489,7 @@ class DigitalFemsa extends PaymentModule
         $key = Configuration::get('DIGITAL_FEMSA_MODE') ? Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_LIVE')
             : Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
         $iso_code = $this->context->language->iso_code;
-        \DigitalFemsa\DigitalFemsa::setApiKey($key);
-        \DigitalFemsa\DigitalFemsa::setPlugin('Prestashop1.7');
-        \DigitalFemsa\DigitalFemsa::setApiVersion('2.0.0');
-        \DigitalFemsa\DigitalFemsa::setLocale($iso_code);
+        \DigitalFemsa\Configuration::getDefaultConfiguration()->setAccessToken($key);
 
         if (Tools::getValue('controller') != 'order-opc'
             && (!($_SERVER['PHP_SELF'] == __PS_BASE_URI__ . 'order.php'
@@ -536,24 +551,37 @@ class DigitalFemsa extends PaymentModule
                 $customer_id = $this->createCustomer($customer, $customerInfo);
             } else {
                 $customer_id = $result['meta_value'];
-                $customerDigitalFemsa = \DigitalFemsa\Customer::find($customer_id);
-                $customerDigitalFemsa->update($customerInfo);
+                $customersApi = new \DigitalFemsa\Api\CustomersApi(null, \DigitalFemsa\Configuration::getDefaultConfiguration());
+                try {
+                    $customersApi->getCustomerById($customer_id, $iso_code ?: 'es');
+                    $updateCustomer = new \DigitalFemsa\Model\UpdateCustomer($customerInfo);
+                    $customersApi->updateCustomer($customer_id, $updateCustomer, $iso_code ?: 'es');
+                } catch (\Throwable $e) {
+                }
             }
 
             $taxlines = DigitalFemsaConfig::getTaxLines($items);
 
-            $checkout = [
+            // Build CheckoutRequest model explicitly and ensure expiration meets minimum window
+            $expirationDateLimit = (int) Configuration::get('DIGITAL_FEMSA_EXPIRATION_DATE_LIMIT');
+            if ($expirationDateLimit <= 0) {
+                $expirationDateLimit = 1; // default 1 unit
+            }
+            $expirationDateType = (int) Configuration::get('DIGITAL_FEMSA_EXPIRATION_DATE_TYPE') == 0 ? 86400 : 3600; // 0=days,1=hours
+            $delta = $expirationDateLimit * $expirationDateType;
+            $minWindow = 30 * 60; // Safe minimum: 30 minutes
+            if ($delta < $minWindow) {
+                $delta = $minWindow;
+            }
+            $expiresAt = time() + $delta;
+
+            $checkoutReq = new \DigitalFemsa\Model\CheckoutRequest([
                 'type' => 'HostedPayment',
                 'allowed_payment_methods' => $payment_options,
                 'failure_url' => Configuration::get('DIGITAL_FEMSA_WEBHOOK'),
                 'success_url' => Configuration::get('DIGITAL_FEMSA_WEBHOOK'),
-            ];
-
-            if (in_array('cash', $payment_options)) {
-                $expirationDateLimit = Configuration::get('DIGITAL_FEMSA_EXPIRATION_DATE_LIMIT');
-                $expirationDateType = Configuration::get('DIGITAL_FEMSA_EXPIRATION_DATE_TYPE') == 0 ? 86400 : 3600;
-                $checkout['expires_at'] = time() + ($expirationDateLimit * $expirationDateType);
-            }
+                'expires_at' => $expiresAt,
+            ]);
 
             $order_details = [
                 'currency' => $this->context->currency->iso_code,
@@ -568,7 +596,6 @@ class DigitalFemsa extends PaymentModule
                     'plugin_version' => _PS_VERSION_,
                     'reference_id' => $this->context->cart->id,
                 ],
-                'checkout' => $checkout,
             ];
 
             $order_elements = array_keys(get_class_vars('Cart'));
@@ -643,41 +670,84 @@ class DigitalFemsa extends PaymentModule
                     return false;
                 }
 
-                if (isset($result) && $result != false && $result['status'] == 'unpaid') {
-                    $order = \DigitalFemsa\Order::find($result['id_digital_femsa_order']);
+                $ordersApi = new \DigitalFemsa\Api\OrdersApi(null, \DigitalFemsa\Configuration::getDefaultConfiguration());
 
-                    if (isset($order->charges[0]->status) && $order->charges[0]->status == 'paid') {
+                if (isset($result) && $result != false && $result['status'] == 'unpaid') {
+                    $order = $ordersApi->getOrderById($result['id_digital_femsa_order'], $iso_code ?: 'es');
+
+                    $charges = $order->getCharges();
+                    $chargesData = $charges ? $charges->getData() : [];
+                    $firstCharge = isset($chargesData[0]) ? $chargesData[0] : null;
+                    if ($firstCharge && $firstCharge->getStatus() === 'paid') {
                         DigitalFemsaDatabase::updateDigitalFemsaOrder(
                             $customer->id,
                             $this->context->cart->id,
                             $this->digitalFemsaMode,
-                            $order->id,
-                            $order->charges[0]->status
+                            $order->getId(),
+                            $firstCharge->getStatus()
                         );
                     }
                 }
 
                 if (empty($order)) {
-                    $order = \DigitalFemsa\Order::create($order_details);
+                    $orderRequest = new \DigitalFemsa\Model\OrderRequest($order_details);
+                    $orderRequest->setCheckout($checkoutReq);
+                    if (class_exists('Logger')) {
+                        Logger::addLog('[DF] createOrder request payload: ' . json_encode($orderRequest), 1);
+                        Logger::addLog('[DF] createOrder meta expires_at=' . $expiresAt . ' now=' . time() . ' delta=' . ($expiresAt - time()) . ' lang=' . ($iso_code ?: 'es'), 1);
+                    }
+                    $order = $ordersApi->createOrder($orderRequest, $iso_code ?: 'es');
+                    if (class_exists('Logger')) {
+                        $checkoutObj = method_exists($order, 'getCheckout') ? $order->getCheckout() : null;
+                        $checkoutId = ($checkoutObj && method_exists($checkoutObj, 'getId')) ? $checkoutObj->getId() : '';
+                        Logger::addLog('[DF] createOrder response: orderId=' . (method_exists($order, 'getId') ? $order->getId() : '') . ' checkoutId=' . $checkoutId, 1);
+                    }
                     DigitalFemsaDatabase::updateDigitalFemsaOrder(
                         $customer->id,
                         $this->context->cart->id,
                         $this->digitalFemsaMode,
-                        $order->id,
+                        $order->getId(),
                         'unpaid'
                     );
-                } elseif (empty($order->charges[0]->status) || $order->charges[0]->status != 'paid') {
-                    unset($order_details['customer_info']);
-                    $order->update($order_details);
                 } else {
-                    $order = \DigitalFemsa\Order::create($order_details);
-                    DigitalFemsaDatabase::updateDigitalFemsaOrder(
-                        $customer->id,
-                        $this->context->cart->id,
-                        $this->digitalFemsaMode,
-                        $order->id,
-                        'unpaid'
-                    );
+                    $charges = $order->getCharges();
+                    $chargesData = $charges ? $charges->getData() : [];
+                    $firstCharge = isset($chargesData[0]) ? $chargesData[0] : null;
+                    if (!$firstCharge || $firstCharge->getStatus() !== 'paid') {
+                        unset($order_details['customer_info']);
+                        $updateReq = new \DigitalFemsa\Model\OrderUpdateRequest($order_details);
+                        $updateReq->setCheckout($checkoutReq);
+                        if (class_exists('Logger')) {
+                            Logger::addLog('[DF] updateOrder request payload: ' . json_encode($updateReq), 1);
+                            Logger::addLog('[DF] updateOrder meta expires_at=' . $expiresAt . ' now=' . time() . ' delta=' . ($expiresAt - time()) . ' lang=' . ($iso_code ?: 'es'), 1);
+                        }
+                        $order = $ordersApi->updateOrder($order->getId(), $updateReq, $iso_code ?: 'es');
+                        if (class_exists('Logger')) {
+                            $checkoutObj = method_exists($order, 'getCheckout') ? $order->getCheckout() : null;
+                            $checkoutId = ($checkoutObj && method_exists($checkoutObj, 'getId')) ? $checkoutObj->getId() : '';
+                            Logger::addLog('[DF] updateOrder response: orderId=' . (method_exists($order, 'getId') ? $order->getId() : '') . ' checkoutId=' . $checkoutId, 1);
+                        }
+                    } else {
+                        $orderRequest = new \DigitalFemsa\Model\OrderRequest($order_details);
+                        $orderRequest->setCheckout($checkoutReq);
+                        if (class_exists('Logger')) {
+                            Logger::addLog('[DF] createOrder (else) request payload: ' . json_encode($orderRequest), 1);
+                            Logger::addLog('[DF] createOrder (else) meta expires_at=' . $expiresAt . ' now=' . time() . ' delta=' . ($expiresAt - time()) . ' lang=' . ($iso_code ?: 'es'), 1);
+                        }
+                        $order = $ordersApi->createOrder($orderRequest, $iso_code ?: 'es');
+                        if (class_exists('Logger')) {
+                            $checkoutObj = method_exists($order, 'getCheckout') ? $order->getCheckout() : null;
+                            $checkoutId = ($checkoutObj && method_exists($checkoutObj, 'getId')) ? $checkoutObj->getId() : '';
+                            Logger::addLog('[DF] createOrder (else) response: orderId=' . (method_exists($order, 'getId') ? $order->getId() : '') . ' checkoutId=' . $checkoutId, 1);
+                        }
+                        DigitalFemsaDatabase::updateDigitalFemsaOrder(
+                            $customer->id,
+                            $this->context->cart->id,
+                            $this->digitalFemsaMode,
+                            $order->getId(),
+                            'unpaid'
+                        );
+                    }
                 }
             } catch (\Exception $e) {
                 $log_message = $e->getMessage();
@@ -700,8 +770,10 @@ class DigitalFemsa extends PaymentModule
         }
 
         if (isset($order)) {
-            $this->smarty->assign('orderID', $order->id);
-            $this->smarty->assign('checkoutRequestId', $order->checkout['id']);
+            $checkout = method_exists($order, 'getCheckout') ? $order->getCheckout() : null;
+            $checkoutId = $checkout && method_exists($checkout, 'getId') ? $checkout->getId() : '';
+            $this->smarty->assign('orderID', method_exists($order, 'getId') ? $order->getId() : '');
+            $this->smarty->assign('checkoutRequestId', $checkoutId);
             $this->smarty->assign('amount', $amount);
         } else {
             $this->smarty->assign('checkoutRequestId', '');
@@ -1272,17 +1344,27 @@ class DigitalFemsa extends PaymentModule
     public function createCustomer($customer, $params)
     {
         try {
-            $customerDigitalFemsa = \DigitalFemsa\Customer::create($params);
+            // Use new SDK: CustomersApi + Customer model
+            $customersApi = new \DigitalFemsa\Api\CustomersApi(null, \DigitalFemsa\Configuration::getDefaultConfiguration());
+            $acceptLang = $this->context->language->iso_code ?: 'es';
 
-            DigitalFemsaDatabase::updateDigitalFemsaMetadata(
-                $customer->id,
-                $this->digitalFemsaMode,
-                'digital_femsa_customer_id',
-                $customerDigitalFemsa->id
-            );
+            $customerModel = new \DigitalFemsa\Model\Customer($params);
+            $response = $customersApi->createCustomer($customerModel, $acceptLang);
+            $customerId = method_exists($response, 'getId') ? $response->getId() : (isset($response->id) ? $response->id : null);
 
-            return $customerDigitalFemsa->id;
-        } catch (\Exception $e) {
+            if ($customerId) {
+                DigitalFemsaDatabase::updateDigitalFemsaMetadata(
+                    $customer->id,
+                    $this->digitalFemsaMode,
+                    'digital_femsa_customer_id',
+                    $customerId
+                );
+
+                return $customerId;
+            }
+
+            return null;
+        } catch (\Throwable $e) {
             return null;
         }
     }
@@ -1353,18 +1435,20 @@ class DigitalFemsa extends PaymentModule
             Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
         $iso_code = $this->context->language->iso_code;
 
-        \DigitalFemsa\DigitalFemsa::setApiKey($key);
-        \DigitalFemsa\DigitalFemsa::setPlugin('Prestashop 1.7');
-        \DigitalFemsa\DigitalFemsa::setApiVersion('2.0.0');
-        \DigitalFemsa\DigitalFemsa::setPluginVersion($this->version);
-        \DigitalFemsa\DigitalFemsa::setLocale($iso_code);
+        $cfg = \DigitalFemsa\Configuration::getDefaultConfiguration();
+        $cfg->setAccessToken($key);
+        $ordersApi = new \DigitalFemsa\Api\OrdersApi(null, $cfg);
+        // Optional: $cfg->setUserAgent('Prestashop 1.7/' . $this->version);
 
         try {
-            $order = \DigitalFemsa\Order::find($digitalFemsaOrderId->id);
-            $charge_response = $order->charges[0];
+            $order = $ordersApi->getOrderById($digitalFemsaOrderId->id, $this->context->language->iso_code ?: 'es');
+            $charges = $order->getCharges();
+            $charge_response = ($charges && $charges->getData()) ? $charges->getData()[0] : null;
             $order_status = (int) Configuration::get('PS_OS_PAYMENT');
             $createAtDate = new DateTime();
-            $createAtDate->setTimestamp($charge_response->created_at);
+            if ($charge_response) {
+                $createAtDate->setTimestamp($charge_response->getCreatedAt());
+            }
 
             $message = $this->l('DigitalFemsa Transaction Details:')
                 . "\n\n" . $this->l('Amount:') . ' ' . ($charge_response->amount * 0.01) . "\n"

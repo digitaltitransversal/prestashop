@@ -10,6 +10,7 @@ class ComposerStaticInit9de225d1a6a948599f262b7508823d32
         'D' => 
         array (
             'DigitalFemsa\\Payments\\' => 22,
+            'DigitalFemsa\\' => 13,
         ),
     );
 
@@ -17,6 +18,10 @@ class ComposerStaticInit9de225d1a6a948599f262b7508823d32
         'DigitalFemsa\\Payments\\' => 
         array (
             0 => __DIR__ . '/../..' . '/src',
+        ),
+        'DigitalFemsa\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/lib/femsa-php/lib',
         ),
     );
 
