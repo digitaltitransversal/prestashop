@@ -389,7 +389,18 @@ class DigitalFemsa extends PaymentModule
 
             $iso_code = $this->context->language->iso_code;
 
-            \DigitalFemsa\Configuration::getDefaultConfiguration()->setAccessToken($key);
+            $cfg = \DigitalFemsa\Configuration::getDefaultConfiguration();
+        $cfg->setAccessToken($key);
+        $integrationParams = [
+            'integration_type' => 'plugin',
+            'integration_name' => 'spin-prestashop',
+            'integration_version' => $this->version,
+            'ecommerce_platform' => 'prestashop',
+            'ecommerce_version' => _PS_VERSION_,
+            'device_type' => (method_exists($this->context, 'isMobile') && $this->context->isMobile()) ? 'mobile' : 'desktop',
+        ];
+        $cfg->setUserAgent(json_encode($integrationParams));
+        $this->smarty->assign('df_user_agent_json', json_encode($integrationParams));
 
             $id_order = (int) $params['id_order'];
             $digital_femsa_tran_details = DigitalFemsaDatabase::getOrderById($id_order);
@@ -487,9 +498,20 @@ class DigitalFemsa extends PaymentModule
     public function hookHeader()
     {
         $key = Configuration::get('DIGITAL_FEMSA_MODE') ? Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_LIVE')
-            : Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
+        : Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
         $iso_code = $this->context->language->iso_code;
-        \DigitalFemsa\Configuration::getDefaultConfiguration()->setAccessToken($key);
+        $cfg = \DigitalFemsa\Configuration::getDefaultConfiguration();
+        $cfg->setAccessToken($key);
+        $integrationParams = [
+            'integration_type' => 'plugin',
+            'integration_name' => 'spin-prestashop',
+            'integration_version' => $this->version,
+            'ecommerce_platform' => 'prestashop',
+            'ecommerce_version' => _PS_VERSION_,
+            'device_type' => (method_exists($this->context, 'isMobile') && $this->context->isMobile()) ? 'mobile' : 'desktop',
+        ];
+        $cfg->setUserAgent(json_encode($integrationParams));
+        $this->smarty->assign('df_user_agent_json', json_encode($integrationParams));
 
         if (Tools::getValue('controller') != 'order-opc'
             && (!($_SERVER['PHP_SELF'] == __PS_BASE_URI__ . 'order.php'
@@ -1437,8 +1459,15 @@ class DigitalFemsa extends PaymentModule
 
         $cfg = \DigitalFemsa\Configuration::getDefaultConfiguration();
         $cfg->setAccessToken($key);
+        $cfg->setUserAgent(json_encode([
+            'integration_type' => 'plugin',
+            'integration_name' => 'spin-prestashop',
+            'integration_version' => $this->version,
+            'ecommerce_platform' => 'prestashop',
+            'ecommerce_version' => _PS_VERSION_,
+            'device_type' => (method_exists($this->context, 'isMobile') && $this->context->isMobile()) ? 'mobile' : 'desktop',
+        ]));
         $ordersApi = new \DigitalFemsa\Api\OrdersApi(null, $cfg);
-        // Optional: $cfg->setUserAgent('Prestashop 1.7/' . $this->version);
 
         try {
             $order = $ordersApi->getOrderById($digitalFemsaOrderId->id, $this->context->language->iso_code ?: 'es');

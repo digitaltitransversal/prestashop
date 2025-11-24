@@ -23,4 +23,7 @@
 	var digital_femsa_checkout_id = "{$checkoutRequestId|escape:'htmlall':'UTF-8'}";
 	var digital_femsa_order_id = "{$orderID|escape:'htmlall':'UTF-8'}";
 	var digital_femsa_amount = "{$amount|escape:'htmlall':'UTF-8'}";
+	{if isset($df_user_agent_json)}
+	try { console.log("SPIN PLUGIN User Agent:", {$df_user_agent_json nofilter}); } catch (e) {}
+	{/if}
 </script> 
