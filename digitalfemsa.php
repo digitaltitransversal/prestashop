@@ -390,17 +390,17 @@ class DigitalFemsa extends PaymentModule
             $iso_code = $this->context->language->iso_code;
 
             $cfg = \DigitalFemsa\Configuration::getDefaultConfiguration();
-        $cfg->setAccessToken($key);
-        $integrationParams = [
-            'integration_type' => 'plugin',
-            'integration_name' => 'spin-prestashop',
-            'integration_version' => $this->version,
-            'ecommerce_platform' => 'prestashop',
-            'ecommerce_version' => _PS_VERSION_,
-            'device_type' => (method_exists($this->context, 'isMobile') && $this->context->isMobile()) ? 'mobile' : 'desktop',
-        ];
-        $cfg->setUserAgent(json_encode($integrationParams));
-        $this->smarty->assign('df_user_agent_json', json_encode($integrationParams));
+            $cfg->setAccessToken($key);
+            $integrationParams = [
+                'integration_type' => 'plugin',
+                'integration_name' => 'spin-prestashop',
+                'integration_version' => $this->version,
+                'ecommerce_platform' => 'prestashop',
+                'ecommerce_version' => _PS_VERSION_,
+                'device_type' => (method_exists($this->context, 'isMobile') && $this->context->isMobile()) ? 'mobile' : 'desktop',
+            ];
+            $cfg->setUserAgent(json_encode($integrationParams));
+            $this->smarty->assign('df_user_agent_json', json_encode($integrationParams));
 
             $id_order = (int) $params['id_order'];
             $digital_femsa_tran_details = DigitalFemsaDatabase::getOrderById($id_order);
