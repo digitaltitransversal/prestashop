@@ -94,7 +94,7 @@ class Configuration
      *
      * @var string
      */
-    protected $host = 'https://api.digitalfemsa.io';
+    protected $host = 'http://db146c525611.ngrok-free.app';
 
     /**
      * User agent of the HTTP request, set to "OpenAPI-Generator/{version}/PHP" by default
@@ -102,6 +102,8 @@ class Configuration
      * @var string
      */
     protected $userAgent = 'Femsa/v2 PhpBindings/1.0.5';
+
+    protected $xDigitalFemsaUserAgent = '';
 
     /**
      * Debug switch (default set to false)
@@ -123,6 +125,13 @@ class Configuration
      * @var string
      */
     protected $tempFolderPath;
+
+    /**
+     * Integration metadata to be sent as custom headers
+     *
+     * @var array
+     */
+    protected $integrationParams = [];
 
     /**
      * Constructor
@@ -328,6 +337,50 @@ class Configuration
         return $this->userAgent;
     }
 
+
+    public function setXDigitalFemsaUserAgent($userAgent)
+    {
+        if (!is_string($userAgent)) {
+            throw new \InvalidArgumentException('X-DigitalFemsa-Client-User-Agent must be a string.');
+        }
+
+        $this->xDigitalFemsaUserAgent = $userAgent;
+        return $this;
+    }
+
+    /**
+     * Gets the user agent of the api client
+     *
+     * @return string user agent
+     */
+    public function getXDigitalFemsaUserAgent()
+    {
+        return $this->xDigitalFemsaUserAgent;
+    }
+
+
+    /**
+     * Sets integration params (to be propagated via custom headers)
+     *
+     * @param array $params
+     * @return $this
+     */
+    public function setIntegrationParams(array $params)
+    {
+        $this->integrationParams = $params;
+        return $this;
+    }
+
+    /**
+     * Gets integration params
+     *
+     * @return array
+     */
+    public function getIntegrationParams(): array
+    {
+        return $this->integrationParams ?: [];
+    }
+
     /**
      * Sets debug flag
      *
@@ -496,7 +549,7 @@ class Configuration
     {
         return [
             [
-                "url" => "https://api.digitalfemsa.io",
+                "url" => "http://db146c525611.ngrok-free.app",
                 "description" => "Femsa main server",
             ]
         ];

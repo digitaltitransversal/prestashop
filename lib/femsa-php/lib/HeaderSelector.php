@@ -268,6 +268,7 @@ class HeaderSelector
         'publisher'        => 'digitalfemsa',
         'uname'            => $uname,
       ];
+
        $headers = [];
        $headers['X-DigitalFemsa-Client-User-Agent'] = json_encode($userAgent);
 

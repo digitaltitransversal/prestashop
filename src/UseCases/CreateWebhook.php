@@ -45,8 +45,28 @@ class CreateWebhook
         string $pluginVersion,
         string $oldWebhook
     ): bool {
-        // Configure SDK with Bearer access token
-        DFConfiguration::getDefaultConfiguration()->setAccessToken($privateKey);
+        // Configure SDK with Bearer access token and merged UA/integration headers
+        $cfg = DFConfiguration::getDefaultConfiguration();
+        $cfg->setAccessToken($privateKey);
+        $headerSelector = new \DigitalFemsa\HeaderSelector();
+        $userAgentHeaders = $headerSelector->getFemsaUserAgent();
+        $existingUserAgent = [];
+        if (isset($userAgentHeaders['X-DigitalFemsa-Client-User-Agent'])) {
+            $decoded = json_decode($userAgentHeaders['X-DigitalFemsa-Client-User-Agent'], true);
+            if (is_array($decoded)) {
+                $existingUserAgent = $decoded;
+            }
+        }
+        $integrationParams = [
+            'integration_type' => 'plugin',
+            'integration_name' => 'spin-prestashop',
+            'integration_version' => '1.0.5',
+            'ecommerce_platform' => 'prestashop',
+            'ecommerce_version' => defined('_PS_VERSION_') ? _PS_VERSION_ : 'unknown',
+            'device_type' => 'server',
+        ];
+        $finalUserAgent = array_merge($existingUserAgent, $integrationParams);
+        $cfg->setXDigitalFemsaUserAgent(json_encode($finalUserAgent));
 
         $newWebhook = Tools::safeOutput(Tools::getValue(self::webhookSetting));
         Configuration::deleteByName(self::webhookErrorSetting);
@@ -70,7 +90,7 @@ class CreateWebhook
 
         if ($failedAttempts < self::MaxFailedAttempts) {
             try {
-                $api = new WebhooksApi(null, DFConfiguration::getDefaultConfiguration());
+                $api = new WebhooksApi(null, $cfg);
 
                 // list existing webhooks
                 $list = $api->getWebhooks($isoCode ?: 'es');

@@ -50,11 +50,19 @@ $(document).ready(function($) {
 
 	function startIntegration() {
 		if (!canStart()) return;
+
+		var hasCheckoutId = (typeof digital_femsa_checkout_id !== 'undefined' && digital_femsa_checkout_id);
+		var hasPublicKey = (typeof digital_femsa_public_key !== 'undefined' && digital_femsa_public_key);
+		if (!hasCheckoutId || !hasPublicKey) {
+			try { console.error('[DF] Missing checkout prerequisites', { hasCheckoutId: !!hasCheckoutId, hasPublicKey: !!hasPublicKey, checkoutId: digital_femsa_checkout_id }); } catch (e) {}
+			return;
+		}
+
 		started = true;
 		window.DigitalFemsaCheckoutComponents.Integration({
 			targetIFrame: "#digitalFemsaIframeContainer",
-			checkoutRequestId: typeof digital_femsa_checkout_id !== 'undefined' ? digital_femsa_checkout_id : null,
-			publicKey: typeof digital_femsa_public_key !== 'undefined' ? digital_femsa_public_key : null,
+			checkoutRequestId: digital_femsa_checkout_id,
+			publicKey: digital_femsa_public_key,
 			options: {
 				theme: 'default',
 				styles: { fontSize: 'baseline', inputType: 'rounded', buttonType: 'sharp' }

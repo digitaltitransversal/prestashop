@@ -643,6 +643,19 @@ class OrdersApi
             $headerParams,
             $headers
         );
+        // TEMP DEBUG: log outgoing headers
+        try {
+            $debugHeaders = $headers;
+            if (isset($debugHeaders['Authorization'])) { $debugHeaders['Authorization'] = 'Bearer ****'; }
+            if (function_exists('json_encode')) {
+                error_log('[DF][OrdersApi] Request headers: ' . json_encode($debugHeaders));
+            }
+            if (class_exists('Logger')) {
+                \Logger::addLog('[DF] OrdersApi headers: ' . json_encode($debugHeaders), 1);
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
 
         $operationHost = $this->config->getHost();
         $query = ObjectSerializer::buildQuery($queryParams);
@@ -1058,13 +1071,18 @@ class OrdersApi
             $headerParams['X-Child-Company-Id'] = ObjectSerializer::toHeaderValue($x_child_company_id);
         }
 
-
-
-        $headers = $this->headerSelector->selectHeaders(
+         $headers = $this->headerSelector->selectHeaders(
             ['application/vnd.app-v2.1.0+json', ],
             $contentType,
             $multipart
         );
+/*
+        $xDigitalFemsaUserAgent = $this->config->getXDigitalFemsaUserAgent();
+        if (!empty($xDigitalFemsaUserAgent)) {
+            //$headerParams['X-DigitalFemsa-Client-User-Agent'] = ObjectSerializer::toHeaderValue($xDigitalFemsaUserAgent);
+            $headerParams['X-DigitalFemsa-Client-User-Agent'] = ObjectSerializer::toHeaderValue($x_child_company_id);
+        }*/
+
         $headers = array_merge(
             $this->headerSelector->getFemsaUserAgent(),
             $headers
@@ -1112,8 +1130,18 @@ class OrdersApi
             $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
         }
 
+        $xDigitalFemsaHeaders = [];
+ /*       if ($this->config->getXDigitalFemsaUserAgent()) {
+            $xDigitalFemsaHeaders['X-DigitalFemsa-Client-User-Agent'] = $this->config->getXDigitalFemsaUserAgent();
+        }
+*/
+       // $headerParams['X-DigitalFemsa-Client-User-Agent'] = ObjectSerializer::toHeaderValue($accept_language);
+
+
+
         $headers = array_merge(
             $defaultHeaders,
+            $xDigitalFemsaHeaders,
             $headerParams,
             $headers
         );
