@@ -1076,12 +1076,6 @@ class OrdersApi
             $contentType,
             $multipart
         );
-/*
-        $xDigitalFemsaUserAgent = $this->config->getXDigitalFemsaUserAgent();
-        if (!empty($xDigitalFemsaUserAgent)) {
-            //$headerParams['X-DigitalFemsa-Client-User-Agent'] = ObjectSerializer::toHeaderValue($xDigitalFemsaUserAgent);
-            $headerParams['X-DigitalFemsa-Client-User-Agent'] = ObjectSerializer::toHeaderValue($x_child_company_id);
-        }*/
 
         $headers = array_merge(
             $this->headerSelector->getFemsaUserAgent(),
@@ -1131,13 +1125,9 @@ class OrdersApi
         }
 
         $xDigitalFemsaHeaders = [];
- /*       if ($this->config->getXDigitalFemsaUserAgent()) {
+        if ($this->config->getXDigitalFemsaUserAgent()) {
             $xDigitalFemsaHeaders['X-DigitalFemsa-Client-User-Agent'] = $this->config->getXDigitalFemsaUserAgent();
         }
-*/
-       // $headerParams['X-DigitalFemsa-Client-User-Agent'] = ObjectSerializer::toHeaderValue($accept_language);
-
-
 
         $headers = array_merge(
             $defaultHeaders,
