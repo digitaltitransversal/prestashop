@@ -389,8 +389,7 @@ class DigitalFemsa extends PaymentModule
 
             $iso_code = $this->context->language->iso_code;
 
-            $cfg = \DigitalFemsa\Configuration::getDefaultConfiguration();
-            $cfg->setAccessToken($key);
+            $cfg = $this->getDigitalFemsaConfig();
             $masked = (is_string($key) && Tools::strlen($key) > 10) ? Tools::substr($key, 0, 6) . '...' . Tools::substr($key, -4) : $key;
             if (class_exists('Logger')) {
                 Logger::addLog('[DF] SDK config refund host=' . $cfg->getHost() . ' mode=' . (Configuration::get('DIGITAL_FEMSA_MODE') ? 'live' : 'test') . ' token=' . $masked, 1);
@@ -515,11 +514,8 @@ class DigitalFemsa extends PaymentModule
         $key = Configuration::get('DIGITAL_FEMSA_MODE') ? Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_LIVE')
         : Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
         $iso_code = $this->context->language->iso_code;
-        $cfg = \DigitalFemsa\Configuration::getDefaultConfiguration();
-        $cfg->setAccessToken($key);
+        $cfg = $this->getDigitalFemsaConfig();
         $isLive = (bool) Configuration::get('DIGITAL_FEMSA_MODE');
-        // Align API host with mode
-        $cfg->setHost($isLive ? 'https://api.digitalfemsa.io' : 'https://api.stg.digitalfemsa.io');
         // Expose correct Checkout JS host to template
         $this->smarty->assign('df_pay_js', $isLive ? 'https://pay.digitalfemsa.io/v1.0/js/digitalfemsa-checkout.min.js' : 'https://pay.stg.digitalfemsa.io/v1.0/js/digitalfemsa-checkout.min.js');
         $masked = (is_string($key) && Tools::strlen($key) > 10) ? Tools::substr($key, 0, 6) . '...' . Tools::substr($key, -4) : $key;
@@ -611,7 +607,7 @@ class DigitalFemsa extends PaymentModule
                 $customer_id = $this->createCustomer($customer, $customerInfo);
             } else {
                 $customer_id = $result['meta_value'];
-                $customersApi = new \DigitalFemsa\Api\CustomersApi(null, \DigitalFemsa\Configuration::getDefaultConfiguration());
+                $customersApi = new \DigitalFemsa\Api\CustomersApi(null, $this->getDigitalFemsaConfig());
                 try {
                     $customersApi->getCustomerById($customer_id, $iso_code ?: 'es');
                     $updateCustomer = new \DigitalFemsa\Model\UpdateCustomer($customerInfo);
@@ -738,7 +734,7 @@ class DigitalFemsa extends PaymentModule
                     return false;
                 }
 
-                $ordersApi = new \DigitalFemsa\Api\OrdersApi(null, \DigitalFemsa\Configuration::getDefaultConfiguration());
+                $ordersApi = new \DigitalFemsa\Api\OrdersApi(null, $this->getDigitalFemsaConfig());
 
                 if (isset($result) && $result != false && $result['status'] == 'unpaid') {
                     $order = $ordersApi->getOrderById($result['id_digital_femsa_order'], $iso_code ?: 'es');
@@ -1412,29 +1408,8 @@ class DigitalFemsa extends PaymentModule
     public function createCustomer($customer, $params)
     {
         try {
-            // Use new SDK: CustomersApi + Customer model, with merged UA/integration headers
-            $cfg = \DigitalFemsa\Configuration::getDefaultConfiguration();
-            $key = Configuration::get('DIGITAL_FEMSA_MODE') ? Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_LIVE') : Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
-            $cfg->setAccessToken($key);
-            $headerSelector = new \DigitalFemsa\HeaderSelector();
-            $userAgentHeaders = $headerSelector->getFemsaUserAgent();
-            $existingUserAgent = [];
-            if (isset($userAgentHeaders['X-DigitalFemsa-Client-User-Agent'])) {
-                $decoded = json_decode($userAgentHeaders['X-DigitalFemsa-Client-User-Agent'], true);
-                if (is_array($decoded)) {
-                    $existingUserAgent = $decoded;
-                }
-            }
-            $integrationParams = [
-                'integration_type' => 'plugin',
-                'integration_name' => 'spin-prestashop',
-                'integration_version' => '1.0.5',
-                'ecommerce_platform' => 'prestashop',
-                'ecommerce_version' => _PS_VERSION_,
-                'device_type' => (method_exists($this->context, 'isMobile') && $this->context->isMobile()) ? 'mobile' : 'desktop',
-            ];
-            $finalUserAgent = array_merge($existingUserAgent, $integrationParams);
-            $cfg->setXDigitalFemsaUserAgent(json_encode($finalUserAgent));
+            // Use configured SDK instance
+            $cfg = $this->getDigitalFemsaConfig();
             
             $customersApi = new \DigitalFemsa\Api\CustomersApi(null, $cfg);
             $acceptLang = $this->context->language->iso_code ?: 'es';
@@ -1458,6 +1433,47 @@ class DigitalFemsa extends PaymentModule
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    /**
+     * Get configured DigitalFemsa SDK instance
+     *
+     * @return \DigitalFemsa\Configuration
+     */
+    private function getDigitalFemsaConfig(): \DigitalFemsa\Configuration
+    {
+        $cfg = \DigitalFemsa\Configuration::getDefaultConfiguration();
+        $key = Configuration::get('DIGITAL_FEMSA_MODE') ? 
+            Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_LIVE') : 
+            Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
+        $cfg->setAccessToken($key);
+        
+        $isLive = (bool) Configuration::get('DIGITAL_FEMSA_MODE');
+        // Align API host with mode
+        $cfg->setHost($isLive ? 'https://api.digitalfemsa.io' : 'https://api.stg.digitalfemsa.io');
+        
+        // Configure user agent headers
+        $headerSelector = new \DigitalFemsa\HeaderSelector();
+        $userAgentHeaders = $headerSelector->getFemsaUserAgent();
+        $existingUserAgent = [];
+        if (isset($userAgentHeaders['X-DigitalFemsa-Client-User-Agent'])) {
+            $decoded = json_decode($userAgentHeaders['X-DigitalFemsa-Client-User-Agent'], true);
+            if (is_array($decoded)) {
+                $existingUserAgent = $decoded;
+            }
+        }
+        $integrationParams = [
+            'integration_type' => 'plugin',
+            'integration_name' => 'spin-prestashop',
+            'integration_version' => '1.0.5',
+            'ecommerce_platform' => 'prestashop',
+            'ecommerce_version' => _PS_VERSION_,
+            'device_type' => (method_exists($this->context, 'isMobile') && $this->context->isMobile()) ? 'mobile' : 'desktop',
+        ];
+        $finalUserAgent = array_merge($existingUserAgent, $integrationParams);
+        $cfg->setXDigitalFemsaUserAgent(json_encode($finalUserAgent));
+        
+        return $cfg;
     }
 
     /**
@@ -1521,40 +1537,13 @@ class DigitalFemsa extends PaymentModule
      */
     public function processPayment($digitalFemsaOrderId)
     {
-        $key = Configuration::get('DIGITAL_FEMSA_MODE') ?
-            Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_LIVE') :
-            Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
         $iso_code = $this->context->language->iso_code;
 
        // Build SDK config
-        $cfg = \DigitalFemsa\Configuration::getDefaultConfiguration();
-        $cfg->setAccessToken($key);
-
-        // 1) Get SDK default UA (X-DigitalFemsa-Client-User-Agent) and decode
-        $headerSelector = new \DigitalFemsa\HeaderSelector();
-        $userAgentHeaders = $headerSelector->getFemsaUserAgent();
-        $existingUserAgent = [];
-        if (isset($userAgentHeaders['X-DigitalFemsa-Client-User-Agent'])) {
-            $decoded = json_decode($userAgentHeaders['X-DigitalFemsa-Client-User-Agent'], true);
-            if (is_array($decoded)) {
-                $existingUserAgent = $decoded;
-            }
-        }
-
-        // 2) Our integration params (Prestashop)
-        $integrationParams = [
-            'integration_type' => 'plugin',
-            'integration_name' => 'spin-prestashop',
-            'integration_version' => '1.0.5',
-            'ecommerce_platform' => 'prestashop',
-            'ecommerce_version' => _PS_VERSION_,
-            'device_type' => (method_exists($this->context, 'isMobile') && $this->context->isMobile()) ? 'mobile' : 'desktop',
-        ];
-
-        // 3) Merge and set UA
-        $finalUserAgent = array_merge($existingUserAgent, $integrationParams);
-        $cfg->setXDigitalFemsaUserAgent(json_encode($finalUserAgent));
-
+        $cfg = $this->getDigitalFemsaConfig();
+        // Get user agent for debugging
+        $finalUserAgent = json_decode($cfg->getXDigitalFemsaUserAgent(), true);
+        
         // 5) Debug logs (console + server + PS logs)
         if (function_exists('error_log')) {
             error_log('[SPIN PLUGIN] User Agent Headers: ' . json_encode($finalUserAgent, JSON_PRETTY_PRINT));
