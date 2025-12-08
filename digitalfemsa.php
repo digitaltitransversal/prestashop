@@ -974,7 +974,7 @@ class DigitalFemsa extends PaymentModule
     {
         $embeddedOption = new PaymentOption();
         $embeddedOption->setModuleName($this->name)->setCallToActionText(
-            $this->l('OXXO PAY powered by Spin ')
+            $this->l('OXXO PAY powered by Spin')
         )->setAction($this->context->link->getModuleLink($this->name, 'validation', [], true))->setForm(
             $this->generateCardPaymentForm()
         )->setLogo(Media::getMediaPath(_PS_MODULE_DIR_ . $this->name . '/views/img/cards2.png'));
