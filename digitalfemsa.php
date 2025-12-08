@@ -519,7 +519,7 @@ class DigitalFemsa extends PaymentModule
         $cfg->setAccessToken($key);
         $isLive = (bool) Configuration::get('DIGITAL_FEMSA_MODE');
         // Align API host with mode
-        $cfg->setHost($isLive ? 'https://api.digitalfemsa.io' : 'http://db146c525611.ngrok-free.app');
+        $cfg->setHost($isLive ? 'https://api.digitalfemsa.io' : 'https://api.stg.digitalfemsa.io');
         // Expose correct Checkout JS host to template
         $this->smarty->assign('df_pay_js', $isLive ? 'https://pay.digitalfemsa.io/v1.0/js/digitalfemsa-checkout.min.js' : 'https://pay.stg.digitalfemsa.io/v1.0/js/digitalfemsa-checkout.min.js');
         $masked = (is_string($key) && Tools::strlen($key) > 10) ? Tools::substr($key, 0, 6) . '...' . Tools::substr($key, -4) : $key;

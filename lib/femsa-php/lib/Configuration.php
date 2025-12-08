@@ -94,7 +94,7 @@ class Configuration
      *
      * @var string
      */
-    protected $host = 'http://db146c525611.ngrok-free.app';
+    protected $host = 'https://api.stg.digitalfemsa.io';
 
     /**
      * User agent of the HTTP request, set to "OpenAPI-Generator/{version}/PHP" by default
@@ -549,7 +549,7 @@ class Configuration
     {
         return [
             [
-                "url" => "http://db146c525611.ngrok-free.app",
+                "url" => "https://api.stg.digitalfemsa.io",
                 "description" => "Femsa main server",
             ]
         ];
