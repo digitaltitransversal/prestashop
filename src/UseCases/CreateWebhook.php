@@ -20,10 +20,9 @@
 
 namespace DigitalFemsa\Payments\UseCases;
 
-require_once __DIR__ . '/../../lib/femsa-php/lib/DigitalFemsa.php';
-
-use DigitalFemsa\DigitalFemsa;
-use DigitalFemsa\Webhook;
+use DigitalFemsa\Configuration as FemsaConfig;
+use DigitalFemsa\Api\WebhooksApi;
+use DigitalFemsa\Model\WebhookRequest;
 use Configuration;
 use Tools;
 
@@ -46,11 +45,9 @@ class CreateWebhook
         string $pluginVersion,
         string $oldWebhook
     ): bool {
-        DigitalFemsa::setApiKey($privateKey);
-        DigitalFemsa::setPlugin('Prestashop');
-        DigitalFemsa::setApiVersion('2.0.0');
-        DigitalFemsa::setPluginVersion($pluginVersion);
-        DigitalFemsa::setLocale($isoCode);
+        FemsaConfig::getDefaultConfiguration()->setAccessToken($privateKey);
+        $host = $digitalFemsaMode ? 'https://api.digitalfemsa.io' : 'https://api.stg.digitalfemsa.io';
+        FemsaConfig::getDefaultConfiguration()->setHost($host);
 
         $events = ['events' => ['order.paid', 'order.expired']];
 
@@ -76,24 +73,17 @@ class CreateWebhook
 
         if ($failedAttempts < self::MaxFailedAttempts) {
             try {
-                $webhooks = Webhook::where();
+                $api = new WebhooksApi(null, FemsaConfig::getDefaultConfiguration());
+                $request = new WebhookRequest([
+                    'url' => $newWebhook,
+                    'synchronous' => false,
+                ]);
+                $api->createWebhook($request, $isoCode ?: 'es');
 
-                $isWebhooksRegistered = array_filter((array) $webhooks, function ($webhook) use ($newWebhook) {
-                    return $webhook->webhook_url === $newWebhook;
-                });
-
-                if (count($isWebhooksRegistered) <= 0) {
-                    $mode = $digitalFemsaMode ? ['production_enabled' => 1] : ['development_enabled' => 1];
-                    Webhook::create(array_merge(['url' => $newWebhook], $mode, $events));
-
-                    Configuration::updateValue(self::webhookSetting, $newWebhook);
-
-                    // delete error variables
-
-                    Configuration::deleteByName(self::webhookAttemptsSetting);
-                    Configuration::deleteByName(self::webhookFailedUrlSetting);
-                    Configuration::deleteByName(self::webhookErrorSetting);
-                }
+                Configuration::updateValue(self::webhookSetting, $newWebhook);
+                Configuration::deleteByName(self::webhookAttemptsSetting);
+                Configuration::deleteByName(self::webhookFailedUrlSetting);
+                Configuration::deleteByName(self::webhookErrorSetting);
 
                 return true;
             } catch (\Exception $e) {
