@@ -268,20 +268,9 @@ class HeaderSelector
         'publisher'        => 'digitalfemsa',
         'uname'            => $uname,
       ];
-      $ua = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
-      $device = preg_match('/Mobile|Android|iP(hone|od|ad)|IEMobile|BlackBerry|Opera Mini/i', $ua) ? 'mobile' : 'desktop';
-      $integration = [
-        'integration_type'    => 'plugin',
-        'integration_name'    => 'spin-prestashop',
-        'integration_version' => (class_exists('\\Configuration') && \Configuration::get('DIGITAL_FEMSA_PRESTASHOP_VERSION')) ? \Configuration::get('DIGITAL_FEMSA_PRESTASHOP_VERSION') : 'unknown',
-        'ecommerce_version'   => defined('_PS_VERSION_') ? _PS_VERSION_ : 'unknown',
-        'device_type'         => $device,
-      ];
-      $userAgent = array_merge($userAgent, $integration);
-       $headers = [];
-       $headers['X-Digitalfemsa-Client-User-Agent'] = json_encode($userAgent);
-       $headers['X-DigitalFemsa-Client-User-Agent'] = $headers['X-Digitalfemsa-Client-User-Agent'];
 
+       $headers['X-Digitalfemsa-Client-User-Agent'] = json_encode($userAgent);
+       
        return $headers;
     }
 }

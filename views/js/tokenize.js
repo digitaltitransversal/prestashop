@@ -39,55 +39,87 @@ var digitalFemsaErrorResponseHandler = function(token) {
 	}
 };
 
-$(document).ready (function($) {
-	window.DigitalFemsaCheckoutComponents.Integration ({
-		targetIFrame: "#digitalFemsaIframeContainer",
-		checkoutRequestId: digital_femsa_checkout_id,
-		publicKey: digital_femsa_public_key,
-		options: {
-			theme: 'default',
-			styles: {
-				fontSize: 'baseline',
-				inputType: 'rounded',
-				buttonType: 'sharp'
-			}
-		},
-		onCreateTokenSucceeded: function (token) {
-			console.log("Token creado ");
-			document.getElementById('digitalFemsaIframeContainer').remove();
-			digitalFemsaSuccessResponseHandler(token);
-		},
-		onCreateTokenError: function (error) {
-			console.log(error);
-			digitalFemsaErrorResponseHandler(error);
-		},
-		onFinalizePayment: function(event) {
-			var $form = $('#digital-femsa-payment-form');
-			$form.append($('<input type="hidden" name="digital_femsa_orden_id" id="digital_femsa_orden_id" />').val(digital_femsa_order_id));
-			$form.append($('<input type="hidden" name="digital_femsa_mount" id="digital_femsa_mount" />').val(digital_femsa_amount));
-			$form.append($('<input type="hidden" name="chargeId" id="chargeId" />').val(event.charge.id));
-			$form.append($('<input type="hidden" name="charge_currency" id="charge_currency" />').val(event.charge.currency));
-			$form.append($('<input type="hidden" name="charge_status" id="charge_status" />').val(event.charge.status));
-			$form.append($('<input type="hidden" name="payment_type" id="payment_type" />').val(event.charge.paymentMethod.type));
-			$form.append($('<input type="hidden" name="reference" id="reference" />').val((event.reference)? event.reference : null));
-			
-			$form.get(0).submit();
-			console.log("Pago exitoso.")
-		},
-		onErrorPayment: function(event) {
-			console.log(event)
-			alert("Pago declinado.")
-		}
-	})
-
+$(document).ready(function($) {
+	var started = false;
 	var paymentOption = document.querySelectorAll('input[data-module-name="digitalfemsa"]')[0];
 
+	function canStart() {
+		return !!document.getElementById('digitalFemsaIframeContainer') &&
+			window.DigitalFemsaCheckoutComponents && !started;
+	}
+
+	function startIntegration() {
+		if (!canStart()) return;
+
+		var hasCheckoutId = (typeof digital_femsa_checkout_id !== 'undefined' && digital_femsa_checkout_id);
+		var hasPublicKey = (typeof digital_femsa_public_key !== 'undefined' && digital_femsa_public_key);
+		if (!hasCheckoutId || !hasPublicKey) {
+			try { console.error('[DF] Missing checkout prerequisites', { hasCheckoutId: !!hasCheckoutId, hasPublicKey: !!hasPublicKey, checkoutId: digital_femsa_checkout_id }); } catch (e) {}
+			return;
+		}
+
+		started = true;
+		window.DigitalFemsaCheckoutComponents.Integration({
+			targetIFrame: "#digitalFemsaIframeContainer",
+			checkoutRequestId: digital_femsa_checkout_id,
+			publicKey: digital_femsa_public_key,
+			options: {
+				theme: 'default',
+				styles: { fontSize: 'baseline', inputType: 'rounded', buttonType: 'sharp' }
+			},
+			onCreateTokenSucceeded: function (token) {
+				console.log('Token creado');
+				var container = document.getElementById('digitalFemsaIframeContainer');
+				if (container) { container.remove(); }
+				digitalFemsaSuccessResponseHandler(token);
+			},
+			onCreateTokenError: function (error) {
+				console.log(error);
+				digitalFemsaErrorResponseHandler(error);
+			},
+			onFinalizePayment: function(event) {
+				var $form = $('#digital-femsa-payment-form');
+				$form.append($('<input type="hidden" name="digital_femsa_orden_id" id="digital_femsa_orden_id" />').val(digital_femsa_order_id));
+				$form.append($('<input type="hidden" name="digital_femsa_mount" id="digital_femsa_mount" />').val(digital_femsa_amount));
+				$form.append($('<input type="hidden" name="chargeId" id="chargeId" />').val(event.charge.id));
+				$form.append($('<input type="hidden" name="charge_currency" id="charge_currency" />').val(event.charge.currency));
+				$form.append($('<input type="hidden" name="charge_status" id="charge_status" />').val(event.charge.status));
+				$form.append($('<input type="hidden" name="payment_type" id="payment_type" />').val(event.charge.paymentMethod.type));
+				$form.append($('<input type="hidden" name="reference" id="reference" />').val((event.reference)? event.reference : null));
+				$form.get(0).submit();
+				console.log('Pago exitoso.');
+			},
+			onErrorPayment: function(event) {
+				console.log(event);
+				alert('Pago declinado.');
+			}
+		});
+	}
+
+	// Try immediately (works if template already injected)
+	startIntegration();
+
+	// Also trigger after selecting the payment option
+	$("input[name=payment-option]").on('click', function () {
+		setTimeout(startIntegration, 0);
+	});
+
+	// Observe DOM for late injection of the container
+	var obs = new MutationObserver(function() {
+		if (canStart()) {
+			startIntegration();
+			obs.disconnect();
+		}
+	});
+	obs.observe(document.documentElement, { childList: true, subtree: true });
+
+	// Keep existing UI toggle
 	$("input[name=payment-option]").click(function () {
-		if (paymentOption.checked) {
-			$('#payment-confirmation').find('button').hide()
+		if (paymentOption && paymentOption.checked) {
+			$('#payment-confirmation').find('button').hide();
 			$('#conditions-to-approve').hide();
 		} else {
-			$('#payment-confirmation').find('button').show()
+			$('#payment-confirmation').find('button').show();
 			$('#conditions-to-approve').show();
 		}
 	});

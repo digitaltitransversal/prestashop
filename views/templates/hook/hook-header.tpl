@@ -14,7 +14,7 @@
  * @see       https://digitalfemsa.io/
  *}
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-<script type="text/javascript" src="https://pay.digitalfemsa.io/v1.0/js/digitalfemsa-checkout.min.js"></script>
+<script type="text/javascript" src="{$df_pay_js|escape:'htmlall':'UTF-8'}"></script>
 <script type="text/javascript" src="{$path|escape:'htmlall':'UTF-8'}views/js/tokenize.js"></script>
 
 

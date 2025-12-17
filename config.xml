@@ -2,7 +2,7 @@
 <module>
     <name>digitalfemsa</name>
     <displayName><![CDATA[Spin]]></displayName>
-    <version><![CDATA[1.0.0]]></version>
+    <version><![CDATA[1.1.0]]></version>
     <description><![CDATA[Accept cash payments]]></description>
     <author><![CDATA[DigitalFemsa]]></author>
     <tab><![CDATA[payments_gateways]]></tab>

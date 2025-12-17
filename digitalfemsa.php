@@ -167,7 +167,7 @@ class digitalfemsa extends PaymentModule
     {
         $this->name = 'digitalfemsa';
         $this->tab = 'payments_gateways';
-        $this->version = '1.0.0';
+        $this->version = '1.1.0';
         $this->ps_versions_compliancy = [
             'min' => '1.7',
             'max' => _PS_VERSION_,
@@ -207,6 +207,36 @@ class digitalfemsa extends PaymentModule
         if (!count(Currency::checkPaymentCurrencies($this->id))) {
             $this->warning = $this->l('No currency has been set for this module.');
         }
+    }
+
+    /**
+     * Get configured DigitalFemsa SDK instance
+     * Centralizes all SDK configuration to ensure consistency across all API calls
+     *
+     * @return \DigitalFemsa\Configuration
+     */
+    private function getDigitalFemsaConfig(): \DigitalFemsa\Configuration
+    {
+        $femsaCfg = FemsaConfig::getDefaultConfiguration();
+        
+        // Set API key based on mode
+        $key = Configuration::get('DIGITAL_FEMSA_MODE') ?
+            Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_LIVE') :
+            Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
+        $femsaCfg->setAccessToken($key);
+        
+        // Set debug logging
+        $femsaCfg->setDebug(true);
+        $femsaCfg->setDebugFile(_PS_MODULE_DIR_ . $this->name . '/femsa_sdk.log');
+        
+        // Set correct API host based on mode
+        $isLive = (bool) Configuration::get('DIGITAL_FEMSA_MODE');
+        $host = $isLive ? 
+            'https://api.digitalfemsa.io' : 
+            'https://api.stg.digitalfemsa.io';
+        $femsaCfg->setHost($host);
+
+        return $femsaCfg;
     }
 
     /**
@@ -351,17 +381,21 @@ class digitalfemsa extends PaymentModule
             $id_order = (int) $params['order']->id;
             $digital_femsa_tran_details = DigitalFemsaDatabase::getOrderById($id_order);
 
-            $this->smarty->assign('cash', true);
-            $this->smarty->assign(
-                'digital_femsa_order',
-                [
-                    'barcode' => $digital_femsa_tran_details['reference'],
-                    'type' => 'cash',
-                    'barcode_url' => $digital_femsa_tran_details['barcode'],
-                    'amount' => $digital_femsa_tran_details['amount'],
-                    'currency' => $digital_femsa_tran_details['currency'],
-                ]
-            );
+            if (!empty($digital_femsa_tran_details)) {
+                $this->smarty->assign('cash', true);
+                $this->smarty->assign(
+                    'digital_femsa_order',
+                    [
+                        'barcode' => $digital_femsa_tran_details['reference'],
+                        'type' => 'cash',
+                        'barcode_url' => $digital_femsa_tran_details['barcode'],
+                        'amount' => $digital_femsa_tran_details['amount'],
+                        'currency' => $digital_femsa_tran_details['currency'],
+                    ]
+                );
+            } else {
+                $this->smarty->assign('cash', false);
+            }
         }
 
         return $this->fetchTemplate('checkout-confirmation-all.tpl');
@@ -377,11 +411,8 @@ class digitalfemsa extends PaymentModule
     public function hookUpdateOrderStatus($params)
     {
         if ($params['newOrderStatus']->id == 7) {
-            // order refunded
-            $key = Configuration::get('DIGITAL_FEMSA_MODE') ?
-                Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_LIVE') :
-                Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
-            FemsaConfig::getDefaultConfiguration()->setAccessToken($key);
+            // order refunded - use centralized configuration
+            $femsaCfg = $this->getDigitalFemsaConfig();
 
             $id_order = (int) $params['id_order'];
             $digital_femsa_tran_details = DigitalFemsaDatabase::getOrderById($id_order);
@@ -391,7 +422,7 @@ class digitalfemsa extends PaymentModule
                 && !(isset($digital_femsa_tran_details['reference'])
                     && !empty($digital_femsa_tran_details['reference']))
             ) {
-                $ordersApi = new OrdersApi(null, FemsaConfig::getDefaultConfiguration());
+                $ordersApi = new OrdersApi(null, $femsaCfg);
                 $refundAmount = (int) round(((float) $digital_femsa_tran_details['amount']) * 100);
                 $ordersApi->orderRefund($digital_femsa_tran_details['id_digital_femsa_order'], [
                     'amount' => $refundAmount,
@@ -469,15 +500,16 @@ class digitalfemsa extends PaymentModule
      */
     public function hookHeader()
     {
-        $key = Configuration::get('DIGITAL_FEMSA_MODE') ? Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_LIVE')
-            : Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
-        $femsaCfg = FemsaConfig::getDefaultConfiguration();
-        $femsaCfg->setAccessToken($key);
-        $femsaCfg->setDebug(true);
-        $femsaCfg->setDebugFile(_PS_MODULE_DIR_ . $this->name . '/femsa_sdk.log');
-        $host = Configuration::get('DIGITAL_FEMSA_MODE') ? 'https://api.digitalfemsa.io' : 'https://api.stg.digitalfemsa.io';
-        $femsaCfg->setHost($host);
-
+        // Use centralized configuration
+        $femsaCfg = $this->getDigitalFemsaConfig();
+        
+        // Expose correct Checkout JS host to template based on mode
+        $isLive = (bool) Configuration::get('DIGITAL_FEMSA_MODE');
+        $this->smarty->assign('df_pay_js', $isLive ? 
+            'https://pay.digitalfemsa.io/v1.0/js/digitalfemsa-checkout.min.js' : 
+            'https://pay.stg.digitalfemsa.io/v1.0/js/digitalfemsa-checkout.min.js'
+        );
+        
         if (Tools::getValue('controller') != 'order-opc'
             && (!($_SERVER['PHP_SELF'] == __PS_BASE_URI__ . 'order.php'
                 || $_SERVER['PHP_SELF'] == __PS_BASE_URI__ . 'order-opc.php'
@@ -630,7 +662,7 @@ class digitalfemsa extends PaymentModule
             }
 
             $result = DigitalFemsaDatabase::getDigitalFemsaOrder($customer->id, $this->digitalFemsaMode, $this->context->cart->id);
-            $ordersApi = new OrdersApi(null, FemsaConfig::getDefaultConfiguration());
+            $ordersApi = new OrdersApi(null, $femsaCfg);
 
             try {
                 if ($order_details['currency'] == 'MXN' && $amount < $this->amount_min) {
@@ -811,35 +843,7 @@ class digitalfemsa extends PaymentModule
                                 'unpaid'
                             );
                             $recovered = true;
-                            if (class_exists('Logger')) {
-                                Logger::addLog(
-                                    'DigitalFemsa recovered by creating customer and order id=' . (method_exists($order, 'getId') ? $order->getId() : ''),
-                                    1,
-                                    null,
-                                    'Cart',
-                                    (int) $this->context->cart->id,
-                                    true
-                                );
-                                Logger::addLog(
-                                    'DigitalFemsa retry createOrder response body=' . json_encode($order),
-                                    1,
-                                    null,
-                                    'Cart',
-                                    (int) $this->context->cart->id,
-                                    true
-                                );
-                            }
                         } catch (\Exception $ie) {
-                            if (class_exists('Logger')) {
-                                Logger::addLog(
-                                    'DigitalFemsa retry failed: ' . $ie->getMessage(),
-                                    2,
-                                    null,
-                                    'Cart',
-                                    (int) $this->context->cart->id,
-                                    true
-                                );
-                            }
                         }
                     }
                 }
@@ -1426,18 +1430,10 @@ class digitalfemsa extends PaymentModule
     public function createCustomer($customer, $params)
     {
         try {
-            // Ensure SDK has token
-            $key = Configuration::get('DIGITAL_FEMSA_MODE') ?
-                Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_LIVE') :
-                Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
-            $femsaCfg = FemsaConfig::getDefaultConfiguration();
-            $femsaCfg->setAccessToken($key);
-            $femsaCfg->setDebug(true);
-            $femsaCfg->setDebugFile(_PS_MODULE_DIR_ . $this->name . '/femsa_sdk.log');
-            $host = Configuration::get('DIGITAL_FEMSA_MODE') ? 'https://api.digitalfemsa.io' : 'https://api.stg.digitalfemsa.io';
-            $femsaCfg->setHost($host);
+            // Use centralized configuration
+            $femsaCfg = $this->getDigitalFemsaConfig();
 
-            $customersApi = new CustomersApi(null, FemsaConfig::getDefaultConfiguration());
+            $customersApi = new CustomersApi(null, $femsaCfg);
             $customerModel = new \DigitalFemsa\Model\Customer([
                 'name' => $params['name'] ?? ($customer->firstname . ' ' . $customer->lastname),
                 'email' => $params['email'] ?? $customer->email,
@@ -1524,16 +1520,9 @@ class digitalfemsa extends PaymentModule
      */
     public function processPayment($digitalFemsaOrderId)
     {
-        $key = Configuration::get('DIGITAL_FEMSA_MODE') ?
-            Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_LIVE') :
-            Configuration::get('DIGITAL_FEMSA_PRIVATE_KEY_TEST');
-        $femsaCfg = FemsaConfig::getDefaultConfiguration();
-        $femsaCfg->setAccessToken($key);
-        $femsaCfg->setDebug(true);
-        $femsaCfg->setDebugFile(_PS_MODULE_DIR_ . $this->name . '/femsa_sdk.log');
-        $host = Configuration::get('DIGITAL_FEMSA_MODE') ? 'https://api.digitalfemsa.io' : 'https://api.stg.digitalfemsa.io';
-        $femsaCfg->setHost($host);
-        $ordersApi = new OrdersApi(null, FemsaConfig::getDefaultConfiguration());
+        // Use centralized configuration
+        $femsaCfg = $this->getDigitalFemsaConfig();
+        $ordersApi = new OrdersApi(null, $femsaCfg);
 
         try {
             $order = $ordersApi->getOrderById($digitalFemsaOrderId->id);
@@ -1554,23 +1543,6 @@ class digitalfemsa extends PaymentModule
                 . "\n" . $this->l('Mode:') . ' '
                 . (($order->getLivemode()) ? $this->l('Live') : $this->l('Test')) . "\n";
 
-            if (class_exists('Logger')) {
-                $statusText = ($charge_response && method_exists($charge_response, 'getStatus')) ? $charge_response->getStatus() : 'unknown';
-                $chargeId = ($charge_response && method_exists($charge_response, 'getId')) ? $charge_response->getId() : '';
-                Logger::addLog(
-                    'DigitalFemsa before validateOrder: df_order_id=' . (method_exists($order, 'getId') ? $order->getId() : '')
-                    . ', charge_id=' . $chargeId
-                    . ', charge_status=' . $statusText
-                    . ', amount=' . ($order && method_exists($order, 'getAmount') ? ($order->getAmount() / 100) : '')
-                    . ', ps_status_id=' . (int) $order_status,
-                    1,
-                    null,
-                    'Cart',
-                    (int) $this->context->cart->id,
-                    true
-                );
-            }
-
             $this->validateOrder(
                 (int) $this->context->cart->id,
                 (int) $order_status,
@@ -1582,17 +1554,6 @@ class digitalfemsa extends PaymentModule
                 false,
                 $this->context->customer->secure_key
             );
-
-            if (class_exists('Logger')) {
-                Logger::addLog(
-                    'DigitalFemsa after validateOrder: ps_order_id=' . (int) $this->currentOrder,
-                    1,
-                    null,
-                    'Order',
-                    (int) $this->currentOrder,
-                    true
-                );
-            }
 
             if (version_compare(_PS_VERSION_, '1.5', '>=')) {
                 $new_order = new Order((int) $this->currentOrder);
@@ -1627,6 +1588,7 @@ class digitalfemsa extends PaymentModule
                 $this->context->cart->id
             );
 
+
             DigitalFemsaDatabase::updateDigitalFemsaOrder(
                 $this->context->customer->id,
                 $this->context->cart->id,
@@ -1645,22 +1607,11 @@ class digitalfemsa extends PaymentModule
                     'key' => $this->context->customer->secure_key,
                     'id_module' => (int) $this->id,
                 ]
-            );
-            Tools::redirect($redirect);
-        } catch (\Exception $e) {
-            $log_message = $e->getMessage();
-
-            if (class_exists('Logger')) {
-                Logger::addLog(
-                    $this->l('Payment transaction failed') . ' ' . $log_message,
-                    2,
-                    null,
-                    'Cart',
-                    (int) $this->context->cart->id,
-                    true
                 );
-            }
 
+            Tools::redirect($redirect);
+                
+        } catch (\Exception $e) {
             $message = $e->getMessage();
 
             $controller = Configuration::get('PS_ORDER_PROCESS_TYPE') ? 'order-opc.php' : 'order.php';
