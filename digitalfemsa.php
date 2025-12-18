@@ -173,8 +173,8 @@ class digitalfemsa extends PaymentModule
             'max' => _PS_VERSION_,
         ];
         $this->author = 'DigitalFemsa';
-        $this->displayName = $this->l('Spin');
-        $this->description = $this->l('Accept cash payments');
+        $this->displayName = $this->l('OXXO PAY powered by Spin');
+        $this->description = $this->l('Vende en línea y recibe pagos en más de 25,000 tiendas OXXO de México.');
         $this->controllers = ['validation', 'notification'];
         $this->is_eu_compatible = 1;
         $this->currencies = true;
@@ -992,7 +992,7 @@ class digitalfemsa extends PaymentModule
     {
         $embeddedOption = new PaymentOption();
         $embeddedOption->setModuleName($this->name)->setCallToActionText(
-            $this->l('Pago por medio de Spin')
+            $this->l('OXXO PAY')
         )->setAction($this->context->link->getModuleLink($this->name, 'validation', [], true))->setForm(
             $this->generateCardPaymentForm()
         )->setLogo(Media::getMediaPath(_PS_MODULE_DIR_ . $this->name . '/views/img/cards2.png'));
@@ -1608,6 +1608,17 @@ class digitalfemsa extends PaymentModule
                     'id_module' => (int) $this->id,
                 ]
                 );
+
+            if (class_exists('Logger')) {
+                Logger::addLog(
+                    $this->l('Redirecting to') . ' ' . $redirect,
+                    1,
+                    null,
+                    'Cart',
+                    (int) $this->context->cart->id,
+                    true
+                );
+            }
 
             Tools::redirect($redirect);
                 
