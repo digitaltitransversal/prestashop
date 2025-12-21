@@ -525,6 +525,7 @@ class digitalfemsa extends PaymentModule
             ]
         );
         $this->context->controller->addCSS($this->_path . 'views/css/digital-femsa-prestashop.css');
+        $this->context->controller->addJS($this->_path . 'views/js/checkout-style.js');
 
         if (Configuration::get('DIGITAL_FEMSA_MODE')) {
             $this->smarty->assign('api_key', addslashes(Configuration::get('DIGITAL_FEMSA_PUBLIC_KEY_LIVE')));
@@ -992,10 +993,10 @@ class digitalfemsa extends PaymentModule
     {
         $embeddedOption = new PaymentOption();
         $embeddedOption->setModuleName($this->name)->setCallToActionText(
-            $this->l('OXXO PAY')
+            $this->l('Paga en efectivo con OXXO PAY')
         )->setAction($this->context->link->getModuleLink($this->name, 'validation', [], true))->setForm(
             $this->generateCardPaymentForm()
-        )->setLogo(Media::getMediaPath(_PS_MODULE_DIR_ . $this->name . '/views/img/cards2.png'));
+        )->setLogo(Media::getMediaPath(_PS_MODULE_DIR_ . $this->name . '/views/img/oxxo.png'));
 
         return $embeddedOption;
     }

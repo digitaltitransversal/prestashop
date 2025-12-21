@@ -5,7 +5,7 @@ div.payment_module {
 
 .digital_femsa_title img {
   float: none;
-  margin-right: 8px;
+  margin-right: 108px;
   margin-top: -2px;
   vertical-align: middle;
 }
@@ -162,6 +162,53 @@ div.payment_module { margin-bottom: 10px; }
 
 p.digital_femsa-payment-module.payment_module.cash-option a.digital_femsa_title {
   background: url(../img/oxxo.png) 25px 38px no-repeat #fbfbfb;
+}
+
+/* All Payment Options - Modern Style */
+.payment-option {
+  background-color: #BBC0DC4D;
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+/* Move radio button to the right */
+.payment-option > input[type="radio"]:first-child,
+.payment-option > .custom-radio:first-child {
+  order: 3;
+  margin-left: 10px;
+}
+
+.payment-option label {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  order: 1 !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+}
+
+.payment-option label span {
+  color: #1a3a4a !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  text-align: left !important;
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+.payment-option label img {
+  margin-left: auto !important;
+  margin-right: 10px !important;
+  height: 24px !important;
+  width: auto !important;
+}
+
+.payment-option input[type="radio"] {
+  flex-shrink: 0;
+  margin-left: 10px;
 }
 
 div.digital_femsa-payment-module.payment_module.active a, p.digital_femsa-payment-module.payment_module.active a:after {
