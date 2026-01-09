@@ -2,18 +2,12 @@
     "packages": [
         {
             "name": "digitalfemsa/femsa-php",
-            "version": "1.0.5",
-            "version_normalized": "1.0.5.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/digitaltitransversal/femsa-php.git",
-                "reference": "b585c7e01ecf1e3702702d02bffe66a05d73ca60"
-            },
+            "version": "1.0.6",
+            "version_normalized": "1.0.6.0",
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/digitaltitransversal/femsa-php/zipball/b585c7e01ecf1e3702702d02bffe66a05d73ca60",
-                "reference": "b585c7e01ecf1e3702702d02bffe66a05d73ca60",
-                "shasum": ""
+                "type": "path",
+                "url": "lib/femsa-php-1.0.6-rc.1",
+                "reference": "05da2da2fdffbe8aa7d30c80c709bf143d799c46"
             },
             "require": {
                 "ext-curl": "*",
@@ -28,7 +22,6 @@
                 "phpstan/phpstan": "1.10.47",
                 "phpunit/phpunit": "^8.0 || ^9.0"
             },
-            "time": "2025-11-11T21:22:45+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -36,7 +29,11 @@
                     "DigitalFemsa\\": "lib/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "DigitalFemsa\\Test\\": "test/"
+                }
+            },
             "license": [
                 "MIT"
             ],
@@ -55,9 +52,9 @@
                 "rest",
                 "sdk"
             ],
-            "support": {
-                "issues": "https://github.com/digitaltitransversal/femsa-php/issues",
-                "source": "https://github.com/digitaltitransversal/femsa-php/tree/1.0.5"
+            "transport-options": {
+                "symlink": false,
+                "relative": true
             },
             "install-path": "../digitalfemsa/femsa-php"
         },
@@ -682,6 +679,6 @@
             "install-path": "../symfony/deprecation-contracts"
         }
     ],
-    "dev": false,
+    "dev": true,
     "dev-package-names": []
 }

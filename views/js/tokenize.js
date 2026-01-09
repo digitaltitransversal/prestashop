@@ -58,9 +58,34 @@ $(document).ready(function($) {
 			return;
 		}
 
+		const uname = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || 'unknown';
+		const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.userAgentData && navigator.userAgentData.mobile);
+		const deviceType = isMobile ? 'mobile' : 'desktop';
+		const phpVersion = (typeof digital_femsa_php_version !== 'undefined' && digital_femsa_php_version) ?
+			digital_femsa_php_version :
+			((typeof digital_femsa_phpversion !== 'undefined' && digital_femsa_phpversion) ? digital_femsa_phpversion : 'unknown');
+		const pluginVersion = typeof digital_femsa_plugin_version !== 'undefined' ? digital_femsa_plugin_version : 'unknown';
+		const sdkVersion = typeof digital_femsa_sdk_version !== 'undefined' ? digital_femsa_sdk_version : 'unknown';
+		const platformVersion = typeof digital_femsa_platform_version !== 'undefined' ? digital_femsa_platform_version : 'unknown';
+
+		const metadata = [
+			{ key: "lang", value: "php" },
+            { key: "lang_version", value: phpVersion },
+			{ key: "uname", value: uname },
+            { key: "integration_type", value: "plugin" },
+            { key: "integration_name", value: "spin-prestashop" },
+			{ key: "plugin_version", value: pluginVersion },
+			{ key: "sdk_version", value: sdkVersion },
+			{ key: "platform_version", value: platformVersion },
+            { key: "device_type", value: deviceType },
+            { key: "plugin", value: "Prestashop" },
+            { key: "sdk_name", value: "prestashop_plugin" },
+        ];	
+
 		started = true;
 		window.DigitalFemsaCheckoutComponents.Integration({
 			targetIFrame: "#digitalFemsaIframeContainer",
+			metadata: metadata,
 			checkoutRequestId: digital_femsa_checkout_id,
 			publicKey: digital_femsa_public_key,
 			options: {

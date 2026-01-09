@@ -21,6 +21,11 @@
 <script type="text/javascript">
 	var digital_femsa_public_key = "{$api_key|escape:'htmlall':'UTF-8'}";
 	var digital_femsa_checkout_id = "{$checkoutRequestId|escape:'htmlall':'UTF-8'}";
+	var digital_femsa_php_version = "{$phpversion|escape:'htmlall':'UTF-8'}";
+	var digital_femsa_phpversion = "{$phpversion|escape:'htmlall':'UTF-8'}";
+	var digital_femsa_plugin_version = "{$digitalfemsa_version|escape:'htmlall':'UTF-8'}";
+	var digital_femsa_sdk_version = "{$digitalfemsa_sdk_version|escape:'htmlall':'UTF-8'}";
+	var digital_femsa_platform_version = "{$digitalfemsa_platform_version|escape:'htmlall':'UTF-8'}";
 	var digital_femsa_order_id = "{$orderID|escape:'htmlall':'UTF-8'}";
 	var digital_femsa_amount = "{$amount|escape:'htmlall':'UTF-8'}";
 </script> 

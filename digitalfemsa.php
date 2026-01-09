@@ -167,7 +167,7 @@ class digitalfemsa extends PaymentModule
     {
         $this->name = 'digitalfemsa';
         $this->tab = 'payments_gateways';
-        $this->version = '1.1.0';
+        $this->version = '1.0.1';
         $this->ps_versions_compliancy = [
             'min' => '1.7',
             'max' => _PS_VERSION_,
@@ -533,6 +533,28 @@ class digitalfemsa extends PaymentModule
         }
 
         $this->smarty->assign('path', $this->_path);
+        $this->smarty->assign('phpversion', PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION);
+        $this->smarty->assign('digitalfemsa_version', (string) $this->version);
+
+        $sdkVersion = '';
+        $sdkVersionPath = __DIR__ . '/vendor/digitalfemsa/femsa-php/VERSION';
+        if (is_readable($sdkVersionPath)) {
+            $sdkVersion = trim((string) file_get_contents($sdkVersionPath));
+        } else {
+            $sdkVersionCandidates = glob(__DIR__ . '/lib/femsa-php-*/VERSION');
+            if (is_array($sdkVersionCandidates) && !empty($sdkVersionCandidates)) {
+                $candidate = reset($sdkVersionCandidates);
+                if ($candidate && is_readable($candidate)) {
+                    $sdkVersion = trim((string) file_get_contents($candidate));
+                }
+            }
+        }
+        $this->smarty->assign('digitalfemsa_sdk_version', $sdkVersion !== '' ? $sdkVersion : 'unknown');
+
+        Media::addJsDef([
+            'digital_femsa_sdk_version' => ($sdkVersion !== '' ? $sdkVersion : 'unknown'),
+        ]);
+        $this->smarty->assign('digitalfemsa_platform_version', defined('_PS_VERSION_') ? (string) _PS_VERSION_ : 'unknown');
 
         $cart = $this->context->cart;
         $customer = $this->context->customer;

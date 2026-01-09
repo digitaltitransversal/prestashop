@@ -7,13 +7,13 @@
         'type' => 'prestashop-module',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'dev' => false,
+        'dev' => true,
     ),
     'versions' => array(
         'digitalfemsa/femsa-php' => array(
-            'pretty_version' => '1.0.5',
-            'version' => '1.0.5.0',
-            'reference' => 'b585c7e01ecf1e3702702d02bffe66a05d73ca60',
+            'pretty_version' => '1.0.6',
+            'version' => '1.0.6.0',
+            'reference' => '05da2da2fdffbe8aa7d30c80c709bf143d799c46',
             'type' => 'library',
             'install_path' => __DIR__ . '/../digitalfemsa/femsa-php',
             'aliases' => array(),
