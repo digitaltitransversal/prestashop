@@ -18,6 +18,11 @@
  * @see       https://digitalfemsa.io/
  */
 
+// Prevent any output before redirect
+if (ob_get_level()) {
+    ob_end_clean();
+}
+
 /**
  * DigitalFemsaValidationModuleFrontController Class Doc Comment
  *
@@ -41,7 +46,7 @@ class DigitalFemsaValidationModuleFrontController extends ModuleFrontController
         $cart = $this->context->cart;
         $authorized = false;
         $customer = new Customer($cart->id_customer);
-        $digitalFemsa = new DigitalFemsa();
+        $digitalFemsa = new digitalfemsa();
 
         foreach (Module::getPaymentModules() as $module) {
             if ($module['name'] == 'digitalfemsa') {

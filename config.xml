@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <module>
     <name>digitalfemsa</name>
-    <displayName><![CDATA[Spin]]></displayName>
-    <version><![CDATA[1.0.0]]></version>
+    <displayName><![CDATA[OXXO PAY powered by Spin]]></displayName>
+    <version><![CDATA[1.0.1]]></version>
     <description><![CDATA[Accept cash payments]]></description>
     <author><![CDATA[DigitalFemsa]]></author>
     <tab><![CDATA[payments_gateways]]></tab>
