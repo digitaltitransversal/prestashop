@@ -13,7 +13,7 @@
         'digitalfemsa/femsa-php' => array(
             'pretty_version' => '1.0.6',
             'version' => '1.0.6.0',
-            'reference' => '05da2da2fdffbe8aa7d30c80c709bf143d799c46',
+            'reference' => '11548c5d8d2e4ba52a0aff3b83e43464d16a660a',
             'type' => 'library',
             'install_path' => __DIR__ . '/../digitalfemsa/femsa-php',
             'aliases' => array(),

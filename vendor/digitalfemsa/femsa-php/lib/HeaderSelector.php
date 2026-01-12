@@ -260,17 +260,13 @@ class HeaderSelector
     {
        $uname_disabled = self::_isDisabled(\ini_get('disable_functions'), 'php_uname');
        $uname = $uname_disabled ? '(disabled)' : \php_uname();
+       $sdk_version = "1.0.6";
+       $lang = "php";
+       $lang_version = phpversion();
+       $userAgentString = "sdk_version={$sdk_version};lang={$lang};lang_version={$lang_version};uname={$uname}";
+       $headers = [];
+       $headers['Spin-Client-User-Agent'] = $userAgentString;
 
-      $userAgent = [
-        'bindings_version' => "1.0.5",
-        'lang'             => 'php',
-        'lang_version'     => phpversion(),
-        'publisher'        => 'digitalfemsa',
-        'uname'            => $uname,
-      ];
-
-       $headers['X-Digitalfemsa-Client-User-Agent'] = json_encode($userAgent);
-       
        return $headers;
     }
 }
