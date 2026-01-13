@@ -23,6 +23,7 @@
 	var digital_femsa_checkout_id = "{$checkoutRequestId|escape:'htmlall':'UTF-8'}";
 	var digital_femsa_php_version = "{$phpversion|escape:'htmlall':'UTF-8'}";
 	var digital_femsa_phpversion = "{$phpversion|escape:'htmlall':'UTF-8'}";
+	var digital_femsa_uname = "{$digitalfemsa_uname|escape:'htmlall':'UTF-8'}";
 	var digital_femsa_plugin_version = "{$digitalfemsa_version|escape:'htmlall':'UTF-8'}";
 	var digital_femsa_sdk_version = "{$digitalfemsa_sdk_version|escape:'htmlall':'UTF-8'}";
 	var digital_femsa_platform_version = "{$digitalfemsa_platform_version|escape:'htmlall':'UTF-8'}";
