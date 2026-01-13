@@ -58,15 +58,19 @@ $(document).ready(function($) {
 			return;
 		}
 
-		const uname = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || 'unknown';
+		const uname = (typeof digital_femsa_uname !== 'undefined' && digital_femsa_uname) ?
+			digital_femsa_uname :
+			((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || 'unknown');
 		const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.userAgentData && navigator.userAgentData.mobile);
 		const deviceType = isMobile ? 'mobile' : 'desktop';
 		const phpVersion = (typeof digital_femsa_php_version !== 'undefined' && digital_femsa_php_version) ?
 			digital_femsa_php_version :
 			((typeof digital_femsa_phpversion !== 'undefined' && digital_femsa_phpversion) ? digital_femsa_phpversion : 'unknown');
-		const pluginVersion = typeof digital_femsa_plugin_version !== 'undefined' ? digital_femsa_plugin_version : 'unknown';
-		const sdkVersion = typeof digital_femsa_sdk_version !== 'undefined' ? digital_femsa_sdk_version : 'unknown';
-		const platformVersion = typeof digital_femsa_platform_version !== 'undefined' ? digital_femsa_platform_version : 'unknown';
+		const pluginVersion = (typeof digital_femsa_plugin_version !== 'undefined' && digital_femsa_plugin_version) ?
+			digital_femsa_plugin_version :
+			'1.0.1';
+		const sdkVersion = typeof digital_femsa_sdk_version !== 'undefined' ? digital_femsa_sdk_version : '1.0.6';
+		const platformVersion = typeof digital_femsa_platform_version !== 'undefined' ? digital_femsa_platform_version : '9.0.1';
 
 		const metadata = [
 			{ key: "lang", value: "php" },

@@ -536,6 +536,11 @@ class digitalfemsa extends PaymentModule
         $this->smarty->assign('phpversion', PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION);
         $this->smarty->assign('digitalfemsa_version', (string) $this->version);
 
+        $disabledFunctions = (string) ini_get('disable_functions');
+        $disabledList = array_filter(array_map('trim', explode(',', $disabledFunctions)));
+        $unameDisabled = in_array('php_uname', $disabledList, true);
+        $this->smarty->assign('digitalfemsa_uname', $unameDisabled ? '(disabled)' : php_uname());
+
         $sdkVersion = '';
         $sdkVersionPath = __DIR__ . '/vendor/digitalfemsa/femsa-php/VERSION';
         if (is_readable($sdkVersionPath)) {
@@ -609,6 +614,20 @@ class digitalfemsa extends PaymentModule
                 $checkout['expires_at'] = time() + ($expirationDateLimit * $expirationDateType);
             }
 
+            $uname_disabled = self::_isDisabled(\ini_get('disable_functions'), 'php_uname');
+            $uname = $uname_disabled ? '(disabled)' : \php_uname();
+            $phpVersion = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
+            $sdkVersion = '';
+            $sdkVersionPath = __DIR__ . '/vendor/digitalfemsa/femsa-php/VERSION';
+            if (is_readable($sdkVersionPath)) {
+                $sdkVersion = \trim((string) \file_get_contents($sdkVersionPath));
+            }
+            $sdkVersion = $sdkVersion !== '' ? $sdkVersion : '1.0.6';
+            $platformVersion = defined('_PS_VERSION_') ? (string) _PS_VERSION_ : '9.0.1';
+            $userAgent = isset($_SERVER['HTTP_USER_AGENT']) ? (string) $_SERVER['HTTP_USER_AGENT'] : '';
+            $isMobile = \preg_match('/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i', $userAgent) === 1;
+            $deviceType = $isMobile ? 'mobile' : 'desktop';
+
             $order_details = [
                 'currency' => $this->context->currency->iso_code,
                 'line_items' => DigitalFemsaConfig::getLineItems($items),
@@ -619,8 +638,17 @@ class digitalfemsa extends PaymentModule
                 'tax_lines' => [],
                 'metadata' => [
                     'plugin' => 'Prestashop',
-                    'plugin_version' => _PS_VERSION_,
+                    'plugin_version' => (string) $this->version,
                     'reference_id' => $this->context->cart->id,
+                    'lang' => 'php',
+                    'lang_version' => $phpVersion,
+                    'uname' => $uname,
+                    'integration_type' => 'plugin',
+                    'integration_name' => 'spin-prestashop',
+                    'sdk_version' => $sdkVersion,
+                    'platform_version' => $platformVersion,
+                    'device_type' => $deviceType,
+                    'sdk_name' => 'prestashop_plugin',
                 ],
                 'checkout' => $checkout,
             ];
@@ -923,6 +951,18 @@ class digitalfemsa extends PaymentModule
         }
 
         return $string;
+    }
+
+    private static function _isDisabled($disableFunctionsOutput, $functionName)
+    {
+        $disabledFunctions = \explode(',', (string) $disableFunctionsOutput);
+        foreach ($disabledFunctions as $disabledFunction) {
+            if (\trim($disabledFunction) === $functionName) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
