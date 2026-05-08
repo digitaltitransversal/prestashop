@@ -68,7 +68,7 @@ $(document).ready(function($) {
 			((typeof digital_femsa_phpversion !== 'undefined' && digital_femsa_phpversion) ? digital_femsa_phpversion : 'unknown');
 		const pluginVersion = (typeof digital_femsa_plugin_version !== 'undefined' && digital_femsa_plugin_version) ?
 			digital_femsa_plugin_version :
-			'1.0.1';
+			'1.1.0';
 		const sdkVersion = typeof digital_femsa_sdk_version !== 'undefined' ? digital_femsa_sdk_version : '1.0.6';
 		const platformVersion = typeof digital_femsa_platform_version !== 'undefined' ? digital_femsa_platform_version : '9.0.1';
 
