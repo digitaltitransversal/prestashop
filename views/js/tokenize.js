@@ -69,7 +69,7 @@ $(document).ready(function($) {
 		const pluginVersion = (typeof digital_femsa_plugin_version !== 'undefined' && digital_femsa_plugin_version) ?
 			digital_femsa_plugin_version :
 			'1.1.0';
-		const sdkVersion = typeof digital_femsa_sdk_version !== 'undefined' ? digital_femsa_sdk_version : '1.0.6';
+		const sdkVersion = typeof digital_femsa_sdk_version !== 'undefined' ? digital_femsa_sdk_version : '1.1.0';
 		const platformVersion = typeof digital_femsa_platform_version !== 'undefined' ? digital_femsa_platform_version : '9.0.1';
 
 		const metadata = [
