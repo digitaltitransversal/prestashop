@@ -7,12 +7,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/digitaltitransversal/femsa-php.git",
-                "reference": "feb3623d5b2e92725f363c80ae7303616748f1e7"
+                "reference": "bcdfb2b25875e02dc867686d05fbef4d4c0366fd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/digitaltitransversal/femsa-php/zipball/feb3623d5b2e92725f363c80ae7303616748f1e7",
-                "reference": "feb3623d5b2e92725f363c80ae7303616748f1e7",
+                "url": "https://api.github.com/repos/digitaltitransversal/femsa-php/zipball/bcdfb2b25875e02dc867686d05fbef4d4c0366fd",
+                "reference": "bcdfb2b25875e02dc867686d05fbef4d4c0366fd",
                 "shasum": ""
             },
             "require": {
@@ -28,7 +28,7 @@
                 "phpstan/phpstan": "1.10.47",
                 "phpunit/phpunit": "8.5.52"
             },
-            "time": "2026-06-01T17:53:14+00:00",
+            "time": "2026-06-01T21:16:57+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
