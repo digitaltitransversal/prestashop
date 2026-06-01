@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bbee4316cc0fb021c28345bbcb242ad3",
+    "content-hash": "c55032eb4e51a36fe6db48bdfcf0947c",
     "packages": [
         {
             "name": "digitalfemsa/femsa-php",
