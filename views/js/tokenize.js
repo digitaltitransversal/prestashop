@@ -34,7 +34,8 @@ var digitalFemsaErrorResponseHandler = function(token) {
 	if ($('.digital-femsa-payment-errors').length) {
 		$('.digital-femsa-payment-errors').fadeIn(1000);
 	} else {
-		$('#digital-femsa-payment-form').prepend('<div class="digital-femsa-payment-errors">' + token +'</div>');
+		var $errorDiv = $('<div class="digital-femsa-payment-errors"></div>').text(token);
+		$('#digital-femsa-payment-form').prepend($errorDiv);
 		$('.digital-femsa-payment-errors').fadeIn(1000);
 	}
 };
