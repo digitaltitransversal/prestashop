@@ -57,7 +57,7 @@ class DigitalFemsaDatabase
     {
         return Db::getInstance()->getRow(
             'SELECT * FROM ' . _DB_PREFIX_ . 'digital_femsa_transaction '
-            . 'WHERE id_order = ' . pSQL((int) $order_id)
+            . 'WHERE id_order = ' . (int) $order_id
             . ' AND type = \'payment\''
         );
     }
@@ -224,9 +224,9 @@ class DigitalFemsaDatabase
     {
         $table = _DB_PREFIX_ . 'digital_femsa_metadata';
 
-        $sql = "SELECT meta_value FROM  $table WHERE id_user = '{$user_id}' "
-        . "AND meta_option = '{$meta_options}' "
-        . "AND `mode` = '{$mode}'";
+        $sql = "SELECT meta_value FROM  $table WHERE id_user = " . (int) $user_id
+        . " AND meta_option = '" . pSQL($meta_options) . "'"
+        . " AND `mode` = '" . pSQL($mode) . "'";
 
         return Db::getInstance()->getRow($sql);
     }
@@ -243,8 +243,8 @@ class DigitalFemsaDatabase
     {
         $table = _DB_PREFIX_ . 'digital_femsa_product_data';
 
-        $sql = "SELECT product_value FROM  $table WHERE id_product = '{$id_product}' "
-        . "AND product_attribute = '{$product_attribute}' ";
+        $sql = "SELECT product_value FROM  $table WHERE id_product = " . (int) $id_product
+        . " AND product_attribute = '" . pSQL($product_attribute) . "'";
 
         return Db::getInstance()->getRow($sql);
     }
@@ -260,7 +260,7 @@ class DigitalFemsaDatabase
     {
         $table = _DB_PREFIX_ . 'digital_femsa_product_data';
 
-        $sql = "SELECT id_product FROM $table WHERE product_value = '{$product_value}'";
+        $sql = "SELECT id_product FROM $table WHERE product_value = '" . pSQL($product_value) . "'";
 
         return Db::getInstance()->ExecuteS($sql);
     }
@@ -281,11 +281,11 @@ class DigitalFemsaDatabase
 
         if (empty(DigitalFemsaDatabase::getDigitalFemsaMetadata($user_id, $mode, $meta_options))) {
             $sql = "INSERT INTO $table(id_user, mode, meta_option, meta_value) "
-            . "VALUES ('{$user_id}','{$mode}','{$meta_options}','{$meta_value}')";
+            . "VALUES (" . (int) $user_id . ",'" . pSQL($mode) . "','" . pSQL($meta_options) . "','" . pSQL($meta_value) . "')";
         } else {
-            $sql = "UPDATE $table SET id_user = '{$user_id}', meta_option = '{$meta_options}', "
-            . "meta_value = '{$meta_value}' WHERE id_user = '{$user_id}' AND meta_option = '{$meta_options}' "
-            . "AND `mode` = '{$mode}'";
+            $sql = "UPDATE $table SET id_user = " . (int) $user_id . ", meta_option = '" . pSQL($meta_options) . "', "
+            . "meta_value = '" . pSQL($meta_value) . "' WHERE id_user = " . (int) $user_id . " AND meta_option = '" . pSQL($meta_options) . "'"
+            . " AND `mode` = '" . pSQL($mode) . "'";
         }
 
         return Db::getInstance()->Execute($sql);
@@ -306,10 +306,10 @@ class DigitalFemsaDatabase
 
         if (empty(self::getDigitalFemsaProductData($id_product, $product_attribute))) {
             $sql = "INSERT INTO $table(id_product, product_attribute, product_value) "
-            . "VALUES ('{$id_product}','{$product_attribute}','{$product_value}')";
+            . "VALUES (" . (int) $id_product . ",'" . pSQL($product_attribute) . "','" . pSQL($product_value) . "')";
         } else {
-            $sql = "UPDATE $table SET product_value = '{$product_value}' "
-            . "WHERE id_product = '{$id_product}' AND product_attribute = '{$product_attribute}' ";
+            $sql = "UPDATE $table SET product_value = '" . pSQL($product_value) . "'"
+            . " WHERE id_product = " . (int) $id_product . " AND product_attribute = '" . pSQL($product_attribute) . "'";
         }
 
         return Db::getInstance()->Execute($sql);
@@ -328,8 +328,8 @@ class DigitalFemsaDatabase
     {
         $table = _DB_PREFIX_ . 'digital_femsa_order_checkout';
 
-        $sql = "SELECT id_digital_femsa_order, `status` FROM  $table WHERE id_user = '{$user_id}' "
-        . "AND `mode` = '{$mode}'  AND `status` = 'unpaid' AND id_cart ='{$cart_id}'";
+        $sql = "SELECT id_digital_femsa_order, `status` FROM  $table WHERE id_user = " . (int) $user_id
+        . " AND `mode` = '" . pSQL($mode) . "' AND `status` = 'unpaid' AND id_cart = " . (int) $cart_id;
 
         return Db::getInstance()->getRow($sql);
     }
@@ -351,10 +351,10 @@ class DigitalFemsaDatabase
 
         if (empty(DigitalFemsaDatabase::getDigitalFemsaOrder($user_id, $mode, $cart_id))) {
             $sql = "INSERT INTO $table(id_user,	id_cart, mode, id_digital_femsa_order, `status`) "
-            . "VALUES ('{$user_id}','{$cart_id}','{$mode}','{$id_digital_femsa_order}', '{$status}')";
+            . "VALUES (" . (int) $user_id . "," . (int) $cart_id . ",'" . pSQL($mode) . "','" . pSQL($id_digital_femsa_order) . "', '" . pSQL($status) . "')";
         } else {
-            $sql = "UPDATE $table SET `status` = '{$status}' WHERE id_user = '{$user_id}' "
-            . "AND id_cart = '{$cart_id}' AND id_digital_femsa_order = '{$id_digital_femsa_order}' AND `mode` = '{$mode}'";
+            $sql = "UPDATE $table SET `status` = '" . pSQL($status) . "' WHERE id_user = " . (int) $user_id
+            . " AND id_cart = " . (int) $cart_id . " AND id_digital_femsa_order = '" . pSQL($id_digital_femsa_order) . "' AND `mode` = '" . pSQL($mode) . "'";
         }
 
         return Db::getInstance()->Execute($sql);
@@ -370,7 +370,7 @@ class DigitalFemsaDatabase
     public static function getOrderByReferenceId($reference_id)
     {
         $table = _DB_PREFIX_ . 'orders';
-        $sql = "SELECT id_order FROM $table WHERE id_order = '{$reference_id}'";
+        $sql = "SELECT id_order FROM $table WHERE id_order = " . (int) $reference_id;
 
         return Db::getInstance()->getRow($sql);
     }
