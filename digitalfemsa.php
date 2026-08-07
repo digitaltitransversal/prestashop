@@ -331,7 +331,7 @@ class digitalfemsa extends PaymentModule
             || !$this->createPendingCashState()
             || !$this->registerHook('displayHeader')
             || !$this->registerHook('paymentOptions')
-            || !$this->registerHook('paymentReturn')
+            || !$this->registerHook('displayPaymentReturn')
             || !$this->registerHook('adminOrder')
             || !$this->registerHook('updateOrderStatus')
             && Configuration::updateValue('DIGITAL_FEMSA_METHOD_CASH', 1)
@@ -390,7 +390,7 @@ class digitalfemsa extends PaymentModule
      *
      * @return template
      */
-    public function hookPaymentReturn($params)
+    public function hookDisplayPaymentReturn($params)
     {
         if ($params['order'] && Validate::isLoadedObject($params['order'])) {
             $id_order = (int) $params['order']->id;
