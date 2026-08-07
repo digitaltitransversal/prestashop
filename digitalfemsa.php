@@ -161,6 +161,21 @@ class digitalfemsa extends PaymentModule
     private $digitalFemsaMode;
 
     /**
+     * @var int
+     */
+    public $is_eu_compatible;
+
+    /**
+     * @var string
+     */
+    public $cash;
+
+    /**
+     * @var float
+     */
+    public $amount_min;
+
+    /**
      * Implement the configuration of the DigitalFemsa Prestashop module
      */
     public function __construct()
@@ -314,7 +329,7 @@ class digitalfemsa extends PaymentModule
 
         if (!parent::install()
             || !$this->createPendingCashState()
-            || !$this->registerHook('header')
+            || !$this->registerHook('displayHeader')
             || !$this->registerHook('paymentOptions')
             || !$this->registerHook('paymentReturn')
             || !$this->registerHook('adminOrder')
@@ -494,11 +509,11 @@ class digitalfemsa extends PaymentModule
     }
 
     /**
-     * Generate method payment and checkout
+     * Implement the displayHeader hook
      *
      * @return template
      */
-    public function hookHeader()
+    public function hookDisplayHeader()
     {
         // Use centralized configuration
         $femsaCfg = $this->getDigitalFemsaConfig();
